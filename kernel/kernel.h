@@ -19,8 +19,6 @@
 #include "P0.h"
 #include "P1.h"
 
-#define MAX_QUEUE_SZ 10
-
 /* The kernel source code is made simpler by three type definitions:
  *
  * - a type that captures each component of an execution context (i.e.,

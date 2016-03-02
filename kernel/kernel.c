@@ -10,18 +10,13 @@
  */
 
 queue_t queue;
+pcb_t current;
+int pid_count = 0;
 
 void scheduler( ctx_t *ctx ) {
-  if      ( current == &pcb[ 0 ] ) {
-    memcpy( &pcb[ 0 ].ctx, ctx, sizeof( ctx_t ) );
-    memcpy( ctx, &pcb[ 1 ].ctx, sizeof( ctx_t ) );
-    current = &pcb[ 1 ];
-  }
-  else if ( current == &pcb[ 1 ] ) {
-    memcpy( &pcb[ 1 ].ctx, ctx, sizeof( ctx_t ) );
-    memcpy( ctx, &pcb[ 0 ].ctx, sizeof( ctx_t ) );
-    current = &pcb[ 0 ];
-  }
+  memcpy( &current.ctx, ctx, sizeof( pcb_t ) ); //Write to current pcb
+  push( &queue, &current ); //Push current pcb onto queue
+  pop( &queue, &current );  //Get new pcb from queue to start executing
 }
 
 void kernel_handler_rst( ctx_t* ctx ) {
@@ -47,17 +42,18 @@ void kernel_handler_rst( ctx_t* ctx ) {
    GICC0->CTLR            = 0x00000001; // enable GIC interface
    GICD0->CTLR            = 0x00000001; // enable GIC distributor
 
-   memset( &pcb[ 0 ], 0, sizeof( pcb_t ) );
-   pcb[ 0 ].pid      = 0;
-   pcb[ 0 ].ctx.cpsr = 0x50;
-   pcb[ 0 ].ctx.pc   = ( uint32_t )( entry_P0 );
-   pcb[ 0 ].ctx.sp   = ( uint32_t )(  &tos_P0 );
+   memset( &queue.contents[ 0 ], 0, sizeof( pcb_t ) );
+   queue.contents[ 0 ].pid      = pid_count;
+   queue.contents[ 0 ].ctx.cpsr = 0x50;
+   queue.contents[ 0 ].ctx.pc   = ( uint32_t )( entry_P0 );
+   queue.contents[ 0 ].ctx.sp   = ( uint32_t )(  &tos_P0 );
 
   /* Once the PCBs are initialised, we (arbitrarily) select one to be
    * restored (i.e., executed) when the function then returns.
    */
 
-   current = &pcb[ 0 ]; memcpy( ctx, &current->ctx, sizeof( ctx_t ) );
+   memcpy( &current, &queue.contents[0], sizeof( pcb_t ) );
+   memcpy( ctx, &current.ctx, sizeof( ctx_t ) );
 
    irq_enable();
    return;
@@ -89,14 +85,15 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       ctx->gpr[ 0 ] = n;
       break;
     }
-    case 0x02 : { // fork
-      memset( &pcb[ 1 ], 0, sizeof( pcb_t ) );
-      pcb[ 1 ].pid      = 1;
-      pcb[ 1 ].ctx      = *ctx;
+    case 0x02 : { // fork - needs return value
+      pcb_t new;
+      new.pid      = ++pid_count;
+      new.ctx      = *ctx;
+      push( &queue, &new );
     }
-    case 0x03 : { // exit
-
-    }
+    // case 0x03 : { // exit
+    //
+    // }
     default   : { // unknown
       break;
     }
