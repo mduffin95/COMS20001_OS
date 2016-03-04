@@ -3,10 +3,11 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <types.h>
 
 // cooperatively yield control of processor, i.e., invoke the scheduler
 void yield();
-void fork();
+pid_t fork();
 void exit();
 
 // write n bytes from x to the file descriptor fd

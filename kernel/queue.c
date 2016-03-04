@@ -1,4 +1,6 @@
 #include "queue.h"
+#include "types.h"
+#include <string.h>
 
 void push( queue_t *q, pcb_t *pcb ) {
   memcpy( &q->contents[q->front + q->count], pcb, sizeof( pcb_t ) );

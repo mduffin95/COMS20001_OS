@@ -19,8 +19,15 @@ int write( int fd, void* x, size_t n ) {
   return r;
 }
 
-void fork() {
-  asm volatile( "svc #2 \n" );
+pid_t fork() {
+  pid_t r;
+
+  asm volatile( "svc #2     \n"
+                "mov %[result], r0 \n"
+              : [result] "=r" (r)
+              :
+              : "r0" );
+  return r;
 }
 
 void exit() {

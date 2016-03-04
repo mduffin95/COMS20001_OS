@@ -9,9 +9,26 @@
  *   can be created, and neither is able to complete.
  */
 
-queue_t queue;
+ #include   "GIC.h"
+ #include "PL011.h"
+ #include "SP804.h"
+
+ #include "interrupt.h"
+ #include "types.h"
+ // Include functionality from newlib, the embedded standard C library.
+
+ #include <string.h>
+
+ // Include definitions relating to the 2 user programs.
+ #include "P0.h"
+ #include "P1.h"
+
+
+queue_t queue = {0};
 pcb_t current;
 int pid_count = 0;
+int chunk = 0x00001000;
+int offset = 0;
 
 void scheduler( ctx_t *ctx ) {
   memcpy( &current.ctx, ctx, sizeof( pcb_t ) ); //Write to current pcb
@@ -42,11 +59,19 @@ void kernel_handler_rst( ctx_t* ctx ) {
    GICC0->CTLR            = 0x00000001; // enable GIC interface
    GICD0->CTLR            = 0x00000001; // enable GIC distributor
 
-   memset( &queue.contents[ 0 ], 0, sizeof( pcb_t ) );
-   queue.contents[ 0 ].pid      = pid_count;
-   queue.contents[ 0 ].ctx.cpsr = 0x50;
-   queue.contents[ 0 ].ctx.pc   = ( uint32_t )( entry_P0 );
-   queue.contents[ 0 ].ctx.sp   = ( uint32_t )(  &tos_P0 );
+   pcb_t new;
+   memset( &new, 0, sizeof( pcb_t ) );
+   new.pid      = pid_count++;
+   new.ctx.cpsr = 0x50;
+   new.ctx.pc   = ( uint32_t )( entry_P0 );
+   new.ctx.sp   = ( uint32_t )(&tos + chunk*offset++);
+   push( &queue, &new );
+
+  //  memset( &queue.contents[ 0 ], 0, sizeof( pcb_t ) );
+  //  queue.contents[ 0 ].pid      = pid_count;
+  //  queue.contents[ 0 ].ctx.cpsr = 0x50;
+  //  queue.contents[ 0 ].ctx.pc   = ( uint32_t )( entry_P0 );
+  //  queue.contents[ 0 ].ctx.sp   = ( uint32_t )(  &tos );
 
   /* Once the PCBs are initialised, we (arbitrarily) select one to be
    * restored (i.e., executed) when the function then returns.
@@ -87,9 +112,15 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
     }
     case 0x02 : { // fork - needs return value
       pcb_t new;
-      new.pid      = ++pid_count;
+      memset( &new, 0, sizeof( pcb_t ) );
+      new.pid      = pid_count;
       new.ctx      = *ctx;
+      new.ctx.sp   = ( uint32_t )(&tos + chunk*offset++);
+      new.ctx.gpr[ 0 ] = 0;
       push( &queue, &new );
+
+      ctx->gpr[ 0 ] = pid_count;
+      pid_count++;
     }
     // case 0x03 : { // exit
     //

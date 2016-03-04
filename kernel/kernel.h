@@ -1,24 +1,7 @@
 #ifndef __KERNEL_H
 #define __KERNEL_H
 
-#include <stddef.h>
-#include <stdint.h>
-
-#include   "GIC.h"
-#include "PL011.h"
-#include "SP804.h"
-
-#include "interrupt.h"
-
-// Include functionality from newlib, the embedded standard C library.
-
-#include <string.h>
-
-// Include definitions relating to the 2 user programs.
-
-#include "P0.h"
-#include "P1.h"
-
+#include <types.h>
 /* The kernel source code is made simpler by three type definitions:
  *
  * - a type that captures each component of an execution context (i.e.,
@@ -29,15 +12,10 @@
  * - a type that captures a process PCB.
  */
 
-typedef struct {
-  uint32_t cpsr, pc, gpr[ 13 ], sp, lr;
-} ctx_t;
+void scheduler( ctx_t *ctx );
+void kernel_handler_rst( ctx_t* ctx );
+void kernel_handler_svc( ctx_t* ctx, uint32_t id );
+void kernel_handler_irq(ctx_t* ctx);
 
-typedef int pid_t;
-
-typedef struct {
-  pid_t pid;
-  ctx_t ctx;
-} pcb_t;
-
+extern uint32_t tos;
 #endif
