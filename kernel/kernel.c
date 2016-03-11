@@ -112,6 +112,9 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       new.ctx.gpr[ 0 ] = 0;
       push( &queue, &new );
 
+      //Copy stack from parent to child
+      memcpy( (uint32_t *) new.ctx.sp, (uint32_t *) ctx->sp, CHUNK );
+
       ctx->gpr[ 0 ] = pid_count;
       pid_count++;
       break;

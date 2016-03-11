@@ -3,11 +3,11 @@
 // #include <stdlib.h>
 
 void P0() {
-  pid_t pid = fork();
   char type;
   char x = 0x30;
   char newline = '\n';
   int count = 10000;
+  pid_t pid = fork();
   if (pid) {
     type = 'P';
   }
