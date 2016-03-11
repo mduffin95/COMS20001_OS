@@ -5,7 +5,6 @@
 void push( queue_t *q, pcb_t *pcb ) {
   memcpy( &q->contents[q->front + q->count], pcb, sizeof( pcb_t ) );
   q->count++;
-
 }
 
 void pop( queue_t *q, pcb_t *pcb ) {

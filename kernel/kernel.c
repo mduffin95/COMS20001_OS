@@ -27,13 +27,16 @@
 queue_t queue = {0};
 pcb_t current;
 int pid_count = 0;
-int chunk = 0x00001000;
 int offset = 0;
 
 void scheduler( ctx_t *ctx ) {
   memcpy( &current.ctx, ctx, sizeof( pcb_t ) ); //Write to current pcb
   push( &queue, &current ); //Push current pcb onto queue
   pop( &queue, &current );  //Get new pcb from queue to start executing
+}
+
+uint32_t new_stack() {
+  return (uint32_t) (&tos + CHUNK * offset++);
 }
 
 void kernel_handler_rst( ctx_t* ctx ) {
@@ -45,43 +48,33 @@ void kernel_handler_rst( ctx_t* ctx ) {
    * - the PC and SP values matche the entry point and top of stack.
    */
 
-   TIMER0->Timer1Load     = 0x00100000; // select period = 2^20 ticks ~= 1 sec
-   TIMER0->Timer1Ctrl     = 0x00000002; // select 32-bit   timer
-   TIMER0->Timer1Ctrl    |= 0x00000040; // select periodic timer
-   TIMER0->Timer1Ctrl    |= 0x00000020; // enable          timer interrupt
-   TIMER0->Timer1Ctrl    |= 0x00000080; // enable          timer
+  TIMER0->Timer1Load     = 0x00100000; // select period = 2^20 ticks ~= 1 sec
+  TIMER0->Timer1Ctrl     = 0x00000002; // select 32-bit   timer
+  TIMER0->Timer1Ctrl    |= 0x00000040; // select periodic timer
+  TIMER0->Timer1Ctrl    |= 0x00000020; // enable          timer interrupt
+  TIMER0->Timer1Ctrl    |= 0x00000080; // enable          timer
 
-   UART0->IMSC           |= 0x00000010; // enable UART    (Rx) interrupt
-   UART0->CR              = 0x00000301; // enable UART (Tx+Rx)
+  UART0->IMSC           |= 0x00000010; // enable UART    (Rx) interrupt
+  UART0->CR              = 0x00000301; // enable UART (Tx+Rx)
 
-   GICC0->PMR             = 0x000000F0; // unmask all            interrupts
-   GICD0->ISENABLER[ 1 ] |= 0x00001010; // enable timer and UART (Rx) interrupts
-   GICC0->CTLR            = 0x00000001; // enable GIC interface
-   GICD0->CTLR            = 0x00000001; // enable GIC distributor
+  GICC0->PMR             = 0x000000F0; // unmask all            interrupts
+  GICD0->ISENABLER[ 1 ] |= 0x00001010; // enable timer and UART (Rx) interrupts
+  GICC0->CTLR            = 0x00000001; // enable GIC interface
+  GICD0->CTLR            = 0x00000001; // enable GIC distributor
 
-   pcb_t new;
-   memset( &new, 0, sizeof( pcb_t ) );
-   new.pid      = pid_count++;
-   new.ctx.cpsr = 0x50;
-   new.ctx.pc   = ( uint32_t )( entry_P0 );
-   new.ctx.sp   = ( uint32_t )(&tos + chunk*offset++);
-   push( &queue, &new );
+  pcb_t new;
+  memset( &new, 0, sizeof( pcb_t ) );
+  new.pid      = pid_count++;
+  new.ctx.cpsr = 0x50;
+  new.ctx.pc   = ( uint32_t )( entry_P0 );
+  new.ctx.sp   = new_stack(); //Dynamically allocate space on the stack.
+  current = new;
 
-  //  memset( &queue.contents[ 0 ], 0, sizeof( pcb_t ) );
-  //  queue.contents[ 0 ].pid      = pid_count;
-  //  queue.contents[ 0 ].ctx.cpsr = 0x50;
-  //  queue.contents[ 0 ].ctx.pc   = ( uint32_t )( entry_P0 );
-  //  queue.contents[ 0 ].ctx.sp   = ( uint32_t )(  &tos );
+  //The new process will be restored when the function returns.
+  *ctx = current.ctx;
 
-  /* Once the PCBs are initialised, we (arbitrarily) select one to be
-   * restored (i.e., executed) when the function then returns.
-   */
-
-   memcpy( &current, &queue.contents[0], sizeof( pcb_t ) );
-   memcpy( ctx, &current.ctx, sizeof( ctx_t ) );
-
-   irq_enable();
-   return;
+  irq_enable();
+  return;
 }
 
 void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
@@ -115,16 +108,19 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       memset( &new, 0, sizeof( pcb_t ) );
       new.pid      = pid_count;
       new.ctx      = *ctx;
-      new.ctx.sp   = ( uint32_t )(&tos + chunk*offset++);
+      new.ctx.sp   = new_stack();
       new.ctx.gpr[ 0 ] = 0;
       push( &queue, &new );
 
       ctx->gpr[ 0 ] = pid_count;
       pid_count++;
+      break;
     }
-    // case 0x03 : { // exit
-    //
-    // }
+    case 0x03 : { // exit
+      pop( &queue, &current );
+      *ctx = current.ctx;
+      break;
+    }
     default   : { // unknown
       break;
     }
@@ -143,7 +139,6 @@ void kernel_handler_irq(ctx_t *ctx) { //ctx_t* ctx
     case GIC_SOURCE_TIMER0: {
       scheduler( ctx );
       *ctx = current.ctx;
-      PL011_putc( UART0, 'T' );
       TIMER0->Timer1IntClr = 0x01;
       break;
     }

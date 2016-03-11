@@ -12,6 +12,8 @@
  * - a type that captures a process PCB.
  */
 
+#define CHUNK 0x00001000
+
 void scheduler( ctx_t *ctx );
 void kernel_handler_rst( ctx_t* ctx );
 void kernel_handler_svc( ctx_t* ctx, uint32_t id );
