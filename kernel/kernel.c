@@ -110,7 +110,7 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       ctx->gpr[ 0 ] = n;
       break;
     }
-    case 0x02 : { // fork - needs return value
+    case 0x02 : { // fork
       pcb_t new;
       memset( &new, 0, sizeof( pcb_t ) );
       new.pid      = pid_count;
@@ -133,7 +133,7 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
   return;
 }
 
-void kernel_handler_irq(ctx_t* ctx) { //ctx_t* ctx
+void kernel_handler_irq(ctx_t *ctx) { //ctx_t* ctx
   // Step 2: read  the interrupt identifier so we know the source.
 
   uint32_t id = GICC0->IAR;
@@ -142,6 +142,7 @@ void kernel_handler_irq(ctx_t* ctx) { //ctx_t* ctx
   switch( id ) {
     case GIC_SOURCE_TIMER0: {
       scheduler( ctx );
+      *ctx = current.ctx;
       PL011_putc( UART0, 'T' );
       TIMER0->Timer1IntClr = 0x01;
       break;
