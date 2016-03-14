@@ -1,64 +1,22 @@
 #include "kernel.h"
 #include "queue.h"
-/* Since we *know* there will be 2 processes, stemming from the 2 user
- * programs, we can
- *
- * - allocate a fixed-size process table (of PCBs), and use a pointer
- *   to keep track of which entry is currently executing, and
- * - employ a fixed-case of round-robin scheduling: no more processes
- *   can be created, and neither is able to complete.
- */
 
- #include   "GIC.h"
- #include "PL011.h"
- #include "SP804.h"
+#include   "GIC.h"
+#include "PL011.h"
+#include "SP804.h"
 
- #include "interrupt.h"
- #include "types.h"
- // Include functionality from newlib, the embedded standard C library.
+#include "interrupt.h"
+#include "types.h"
+#include "scheduler.h"
+// Include functionality from newlib, the embedded standard C library.
 
- #include <string.h>
+#include <string.h>
 
- // Include definitions relating to the 2 user programs.
- #include "P0.h"
- #include "P1.h"
-
-
-queue_t queue = {0};
-pcb_t current;
-int idle_flag = 1;
-pcb_t idle_pcb;
-int pid_count = 0;
-int offset = 0;
-
-void scheduler( ctx_t *ctx ) {
-  memcpy( &current.ctx, ctx, sizeof( pcb_t ) ); //Write to current pcb
-  push( &queue, &current ); //Push current pcb onto queue
-  pop( &queue, &current );  //Get new pcb from queue to start executing
-}
-
-uint32_t new_stack() {
-  return (uint32_t) (&tos + CHUNK * offset++);
-}
-
-void idle_proc() {
-  while (1) {
-    asm volatile( "nop" );
-  }
-}
-
-void (*entry_idle)() = &idle_proc;
-
+// Include definitions relating to the 2 user programs.
+#include "P0.h"
+#include "P1.h"
 
 void kernel_handler_rst( ctx_t* ctx ) {
-  /* Initialise PCBs representing processes stemming from execution of
-   * the two user programs.  Note in each case that
-   *
-   * - the CPSR value of 0x50 means the processor is switched into USR
-   *   mode, with IRQ interrupts enabled, and
-   * - the PC and SP values matche the entry point and top of stack.
-   */
-
   TIMER0->Timer1Load     = 0x00100000; // select period = 2^20 ticks ~= 1 sec
   TIMER0->Timer1Ctrl     = 0x00000002; // select 32-bit   timer
   TIMER0->Timer1Ctrl    |= 0x00000040; // select periodic timer
@@ -73,38 +31,15 @@ void kernel_handler_rst( ctx_t* ctx ) {
   GICC0->CTLR            = 0x00000001; // enable GIC interface
   GICD0->CTLR            = 0x00000001; // enable GIC distributor
 
-  // memset( &idle_pcb, 0, sizeof( pcb_t ) );
-  // idle_pcb.pid      = pid_count++;
-  // idle_pcb.ctx.cpsr = 0x50; //User mode
-  // idle_pcb.ctx.pc   = ( uint32_t )( entry_idle );
-  // idle_pcb.ctx.sp   = new_stack(); //Dynamically allocate space on the stack.
+  new_proc(&idle_pcb, &idle_proc);
 
-  new_proc(&idle_pcb, entry_idle);
-
-  //The new process will be restored when the function returns.
   *ctx = idle_pcb.ctx;
 
   irq_enable();
   return;
 }
 
-void new_proc( pcb_t *pcb, entry_point e ) {
-  memset(pcb, 0, sizeof(pcb_t));
-  pcb->pid      = pid_count++;
-  pcb->ctx.cpsr = 0x50; //User mode
-  pcb->ctx.pc   = ( uint32_t )( e );
-  pcb->ctx.sp   = new_stack(); //Dynamically allocate space on the stack.
-}
-
 void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
-  /* Based on the identified encoded as an immediate operand in the
-   * instruction,
-   *
-   * - read  the arguments from preserved usr mode registers,
-   * - perform whatever is appropriate for this system call,
-   * - write any return value back to preserved usr mode registers.
-   */
-
   switch( id ) {
     case 0x00 : { // yield()
       scheduler( ctx );
@@ -124,18 +59,12 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
     }
     case 0x02 : { // fork
       pcb_t new;
-      memset( &new, 0, sizeof( pcb_t ) );
-      new.pid      = pid_count;
-      new.ctx      = *ctx;
-      new.ctx.sp   = new_stack();
-      new.ctx.gpr[ 0 ] = 0;
+      uint32_t pid_new = copy_proc( &new, ctx );
+
+      new.ctx.gpr[ 0 ] = 0; //Set return value to zero (for child)
       push( &queue, &new );
 
-      //Copy stack from parent to child
-      memcpy( (uint32_t *) new.ctx.sp, (uint32_t *) ctx->sp, CHUNK );
-
-      ctx->gpr[ 0 ] = pid_count;
-      pid_count++;
+      ctx->gpr[ 0 ] = pid_new; //Set return value to pid of child (for parent)
       break;
     }
     case 0x03 : { // exit
