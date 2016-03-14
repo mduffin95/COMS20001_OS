@@ -26,6 +26,8 @@
 
 queue_t queue = {0};
 pcb_t current;
+int idle_flag = 1;
+pcb_t idle_pcb;
 int pid_count = 0;
 int offset = 0;
 
@@ -38,6 +40,15 @@ void scheduler( ctx_t *ctx ) {
 uint32_t new_stack() {
   return (uint32_t) (&tos + CHUNK * offset++);
 }
+
+void idle_proc() {
+  while (1) {
+    asm volatile( "nop" );
+  }
+}
+
+void (*entry_idle)() = &idle_proc;
+
 
 void kernel_handler_rst( ctx_t* ctx ) {
   /* Initialise PCBs representing processes stemming from execution of
@@ -62,19 +73,27 @@ void kernel_handler_rst( ctx_t* ctx ) {
   GICC0->CTLR            = 0x00000001; // enable GIC interface
   GICD0->CTLR            = 0x00000001; // enable GIC distributor
 
-  pcb_t new;
-  memset( &new, 0, sizeof( pcb_t ) );
-  new.pid      = pid_count++;
-  new.ctx.cpsr = 0x50;
-  new.ctx.pc   = ( uint32_t )( entry_P0 );
-  new.ctx.sp   = new_stack(); //Dynamically allocate space on the stack.
-  current = new;
+  // memset( &idle_pcb, 0, sizeof( pcb_t ) );
+  // idle_pcb.pid      = pid_count++;
+  // idle_pcb.ctx.cpsr = 0x50; //User mode
+  // idle_pcb.ctx.pc   = ( uint32_t )( entry_idle );
+  // idle_pcb.ctx.sp   = new_stack(); //Dynamically allocate space on the stack.
+
+  new_proc(&idle_pcb, entry_idle);
 
   //The new process will be restored when the function returns.
-  *ctx = current.ctx;
+  *ctx = idle_pcb.ctx;
 
   irq_enable();
   return;
+}
+
+void new_proc( pcb_t *pcb, entry_point e ) {
+  memset(pcb, 0, sizeof(pcb_t));
+  pcb->pid      = pid_count++;
+  pcb->ctx.cpsr = 0x50; //User mode
+  pcb->ctx.pc   = ( uint32_t )( e );
+  pcb->ctx.sp   = new_stack(); //Dynamically allocate space on the stack.
 }
 
 void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
@@ -120,8 +139,14 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       break;
     }
     case 0x03 : { // exit
-      pop( &queue, &current );
-      *ctx = current.ctx;
+      if (pop( &queue, &current )) {
+        *ctx = idle_pcb.ctx;
+        current = idle_pcb;
+        idle_flag = 1;
+      }
+      else {
+        *ctx = current.ctx;
+      }
       break;
     }
     default   : { // unknown
@@ -140,16 +165,23 @@ void kernel_handler_irq(ctx_t *ctx) { //ctx_t* ctx
   // Step 4: handle the interrupt, then clear (or reset) the source.
   switch( id ) {
     case GIC_SOURCE_TIMER0: {
-      scheduler( ctx );
-      *ctx = current.ctx;
+      if (!idle_flag) {
+        scheduler( ctx );
+        *ctx = current.ctx;
+      }
       TIMER0->Timer1IntClr = 0x01;
       break;
     }
     case GIC_SOURCE_UART0: {
       uint8_t x = PL011_getc( UART0 );
 
-      if ( x == 'f' ) {
-
+      if ( x == 'n' ) {
+        if (!idle_flag) {
+          push( &queue, &current );
+        }
+        else idle_flag = 0;
+        new_proc( &current, entry_P0 );
+        *ctx = current.ctx;
       }
       else if ( x == 'e' ) {
 

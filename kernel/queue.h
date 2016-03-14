@@ -11,6 +11,6 @@ typedef struct queue_t {
 } queue_t;
 
 void push( queue_t *q, pcb_t *pcb );
-void pop( queue_t *q, pcb_t *pcb );
+int pop( queue_t *q, pcb_t *pcb );
 
 #endif
