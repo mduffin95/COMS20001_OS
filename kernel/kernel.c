@@ -8,6 +8,7 @@
 #include "interrupt.h"
 #include "types.h"
 #include "scheduler.h"
+#include "inst.h"
 // Include functionality from newlib, the embedded standard C library.
 
 #include <string.h>
@@ -104,22 +105,24 @@ void kernel_handler_irq(ctx_t *ctx) { //ctx_t* ctx
     case GIC_SOURCE_UART0: {
       uint8_t x = PL011_getc( UART0 );
 
-      if ( x == 'n' ) {
-        if (!idle_flag) {
-          push( &queue, &current );
-        }
-        else idle_flag = 0;
-        new_proc( &current, entry_P0 );
-        *ctx = current.ctx;
-      }
-      else if ( x == 'e' ) {
+      inst_process( x );
 
-      }
+      // if ( x == 'n' ) {
+      //   if (!idle_flag) {
+      //     push( &queue, &current );
+      //   }
+      //   else idle_flag = 0;
+      //   new_proc( &current, entry_P0 );
+      //   *ctx = current.ctx;
+      // }
+      // else if ( x == 'e' ) {
+      //
+      // }
 
-      PL011_putc( UART0, 'K' );
-      PL011_putc( UART0, '<' );
-      PL011_putc( UART0,  x  );
-      PL011_putc( UART0, '>' );
+      // PL011_putc( UART0, 'K' );
+      // PL011_putc( UART0, '<' );
+      // PL011_putc( UART0,  x  );
+      // PL011_putc( UART0, '>' );
 
       UART0->ICR = 0x10;
       break;
