@@ -1,6 +1,17 @@
-#include "PL011.h"
-#include "inst.h"
+#include "shell.h"
+#include "libc.h"
 #include "cli.h"
+
+void shell() {
+  char x;
+  while (1) {
+    if ( read( 0, &x, 1 ) ) {
+      inst_process(x);
+    }
+  }
+}
+
+void (*entry_shell)() = &shell;
 
 char inst_buffer[SZ_INST_BUFFER];
 uint8_t inst_end = 0;
@@ -10,24 +21,24 @@ uint8_t inst_end = 0;
  */
 int inst_process(uint8_t data) //Returns 1 if buffer is full. Otherwise 0.
 {
-    switch (data)
-    {
+    switch (data) {
     case '\r':
         inst_buffer[inst_end] = '\0';
         exec_command(inst_buffer); //Determines which cmd function to run.
         inst_clear();
-        PL011_putc( UART0,  '\r'  );
-        PL011_putc( UART0,  '\n'  );
+        write( 0, "\r\n", 2 );
         break;
     case '\n':
         //ignore
         break;
     case 127:
         inst_del();
-        PL011_putc( UART0,  data  );
+        write( 0, &data, 1 );
+        // PL011_putc( UART0,  data  );
         break;
     default:
-        PL011_putc( UART0,  data  );
+        // PL011_putc( UART0,  data  );
+        write( 0, &data, 1 );
         return inst_add(data);
     }
     return 0;

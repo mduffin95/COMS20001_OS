@@ -5,6 +5,7 @@
 
 const commandStruct commands[] = {
   {"Test", test_func, 0, "A test function."},
+  // {"P0", P0, 0, "A user function"}
   {"",0,0,""}
 };
 
@@ -33,5 +34,6 @@ void exec_command( char *buffer ) {
       commands[cmdCount].execute(num_args, args);
       break;
     }
+    cmdCount++;
   }
 }

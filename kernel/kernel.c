@@ -8,7 +8,8 @@
 #include "interrupt.h"
 #include "types.h"
 #include "scheduler.h"
-#include "inst.h"
+// #include "inst.h"
+#include "io.h"
 // Include functionality from newlib, the embedded standard C library.
 
 #include <string.h>
@@ -16,6 +17,7 @@
 // Include definitions relating to the 2 user programs.
 #include "P0.h"
 #include "P1.h"
+#include "shell.h"
 
 void kernel_handler_rst( ctx_t* ctx ) {
   TIMER0->Timer1Load     = 0x00100000; // select period = 2^20 ticks ~= 1 sec
@@ -32,9 +34,10 @@ void kernel_handler_rst( ctx_t* ctx ) {
   GICC0->CTLR            = 0x00000001; // enable GIC interface
   GICD0->CTLR            = 0x00000001; // enable GIC distributor
 
-  new_proc(&idle_pcb, &idle_proc);
+  new_proc(&current, entry_shell);
 
-  *ctx = idle_pcb.ctx;
+  *ctx = current.ctx;
+  foreground = current.pid;
 
   irq_enable();
   return;
@@ -58,7 +61,16 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       ctx->gpr[ 0 ] = n;
       break;
     }
-    case 0x02 : { // fork
+    case 0x02 : { // read( fd, x, n )
+      int   fd = ( int   )( ctx->gpr[ 0 ] );
+      char*  x = ( char* )( ctx->gpr[ 1 ] );
+      int    n = ( int   )( ctx->gpr[ 2 ] );
+
+      int res = extract_buf( x, n );
+      ctx->gpr[ 0 ] = res;
+      break;
+    }
+    case 0x03 : { // fork
       pcb_t new;
       uint32_t pid_new = copy_proc( &new, ctx );
 
@@ -68,11 +80,9 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       ctx->gpr[ 0 ] = pid_new; //Set return value to pid of child (for parent)
       break;
     }
-    case 0x03 : { // exit
+    case 0x04 : { // exit
       if (pop( &queue, &current )) {
-        *ctx = idle_pcb.ctx;
-        current = idle_pcb;
-        idle_flag = 1;
+        // This shouldn't happen.
       }
       else {
         *ctx = current.ctx;
@@ -95,17 +105,15 @@ void kernel_handler_irq(ctx_t *ctx) { //ctx_t* ctx
   // Step 4: handle the interrupt, then clear (or reset) the source.
   switch( id ) {
     case GIC_SOURCE_TIMER0: {
-      if (!idle_flag) {
-        scheduler( ctx );
-        *ctx = current.ctx;
-      }
+      scheduler( ctx );
+      *ctx = current.ctx;
       TIMER0->Timer1IntClr = 0x01;
       break;
     }
     case GIC_SOURCE_UART0: {
       uint8_t x = PL011_getc( UART0 );
-
-      inst_process( x );
+      insert( &in_buf, x );
+      // inst_process( x );
 
       // if ( x == 'n' ) {
       //   if (!idle_flag) {
@@ -118,11 +126,6 @@ void kernel_handler_irq(ctx_t *ctx) { //ctx_t* ctx
       // else if ( x == 'e' ) {
       //
       // }
-
-      // PL011_putc( UART0, 'K' );
-      // PL011_putc( UART0, '<' );
-      // PL011_putc( UART0,  x  );
-      // PL011_putc( UART0, '>' );
 
       UART0->ICR = 0x10;
       break;

@@ -3,7 +3,11 @@
 #include <string.h>
 
 void push( queue_t *q, pcb_t *pcb ) {
-  memcpy( &q->contents[q->front + q->count], pcb, sizeof( pcb_t ) );
+  int index = q->front + q->count;
+  if ( index >= QUEUE_SZ ) {
+    index -= QUEUE_SZ;
+  }
+  memcpy( &q->contents[index], pcb, sizeof( pcb_t ) );
   q->count++;
 }
 
@@ -14,7 +18,7 @@ int pop( queue_t *q, pcb_t *pcb ) {
   memcpy( pcb, &q->contents[q->front], sizeof( pcb_t ) );
   q->front++;
   q->count--;
-  if ( q->front >= MAX_QUEUE_SZ ) {
+  if ( q->front >= QUEUE_SZ ) {
     q->front = 0;
   }
   return 0;

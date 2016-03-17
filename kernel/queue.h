@@ -3,10 +3,10 @@
 
 #include "kernel.h"
 
-#define MAX_QUEUE_SZ 10
+#define QUEUE_SZ 10
 
 typedef struct queue_t {
-  pcb_t contents[ MAX_QUEUE_SZ ];
+  pcb_t contents[ QUEUE_SZ ];
   int front, count;
 } queue_t;
 

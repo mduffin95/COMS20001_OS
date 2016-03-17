@@ -1,12 +1,10 @@
 #include "scheduler.h"
 
 uint32_t new_stack();
-void idle_proc();
 
 queue_t queue = {0};
 pcb_t current;
-int idle_flag = 1;
-pcb_t idle_pcb;
+pid_t foreground;
 int pid_count = 0;
 int offset = 0;
 
@@ -39,10 +37,4 @@ uint32_t copy_proc( pcb_t *dest, ctx_t *source ) {
   //Copy stack from parent to child
   memcpy( (uint32_t *) dest->ctx.sp, (uint32_t *) source->sp, CHUNK );
   return pid_count++;
-}
-
-void idle_proc() {
-  while (1) {
-    asm volatile( "nop" );
-  }
 }
