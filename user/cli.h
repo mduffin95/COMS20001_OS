@@ -14,6 +14,8 @@ typedef struct commandStruct {
   char const *help;
 } commandStruct;
 
-void exec_command( char *buffer );
+
+void process_command( char *buffer );
 void test_func(uint8_t argc, uint16_t *argv);
+void run( uint8_t argc, uint16_t *argv );
 #endif

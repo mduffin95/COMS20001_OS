@@ -89,6 +89,18 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       }
       break;
     }
+    case 0x05 : { // execv
+      char *path = ( char* )( ctx->gpr[ 0 ] );
+      char **argv = ( char** )( ctx->gpr[ 1 ] );
+
+      //Must now alter currently running process.
+      //Wipe pcb apart from pid.
+      pid_t pid = current.pid;
+      memset(current, 0, sizeof(pcb_t));
+
+      //Wipe stack. 
+      break;
+    }
     default   : { // unknown
       break;
     }

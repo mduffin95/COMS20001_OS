@@ -1,19 +1,16 @@
 #include "cli.h"
-#include "PL011.h"
+#include "libc.h"
+
 #include <string.h>
 #include <stdlib.h>
 
 const commandStruct commands[] = {
-  {"Test", test_func, 0, "A test function."},
-  // {"P0", P0, 0, "A user function"}
+  {"test", test_func, 0, "A test function."},
+  {"run", run, 0, "Run a user program."},
   {"",0,0,""}
 };
 
-void test_func(uint8_t argc, uint16_t *argv) {
-  PL011_putc( UART0, 'E' );
-}
-
-void exec_command( char *buffer ) {
+void process_command( char *buffer ) {
   uint16_t args[MAX_ARGS] = {0};
   uint8_t num_args = 0;
   char *inst, *token;
@@ -35,5 +32,17 @@ void exec_command( char *buffer ) {
       break;
     }
     cmdCount++;
+  }
+}
+
+void test_func(uint8_t argc, uint16_t *argv) {
+  write( 0, "E", 1 );
+}
+
+void run( uint8_t argc, uint16_t *argv ) {
+  pid_t pid = fork();
+  if(!pid) {
+    //Child, so run new program.
+    execv("Blah", NULL);
   }
 }

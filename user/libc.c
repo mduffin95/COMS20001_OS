@@ -48,3 +48,12 @@ pid_t fork() {
 void exit() {
   asm volatile( "svc #4 \n" );
 }
+
+void execv(char *path, char **argv) {
+  asm volatile( "mov r0, %[p] \n"
+                "mov r1, %[a] \n"
+                "svc #5 \n"
+              :
+              : [p] "r" (path), [a] "r" (argv)
+              : "r0", "r1" );
+}

@@ -20,21 +20,23 @@ uint32_t new_stack() {
   return (uint32_t) (&tos + CHUNK * offset++);
 }
 
-void new_proc( pcb_t *pcb, entry_point e ) {
+pid_t new_proc( pcb_t *pcb, entry_point e ) {
   memset(pcb, 0, sizeof(pcb_t));
-  pcb->pid      = pid_count++;
+  pcb->pid      = pid_count;
   pcb->ctx.cpsr = 0x50; //User mode
   pcb->ctx.pc   = ( uint32_t )( e );
   pcb->ctx.sp   = new_stack(); //Dynamically allocate space on the stack.
+  return pid_count++;
 }
 
-uint32_t copy_proc( pcb_t *dest, ctx_t *source ) {
+pid_t copy_proc( pcb_t *dest, ctx_t *source ) {
   memset( dest, 0, sizeof( pcb_t ) );
   dest->pid      = pid_count;
   dest->ctx      = *source;
   dest->ctx.sp   = new_stack();
 
   //Copy stack from parent to child
+  //This may overwite more than needed.
   memcpy( (uint32_t *) dest->ctx.sp, (uint32_t *) source->sp, CHUNK );
   return pid_count++;
 }

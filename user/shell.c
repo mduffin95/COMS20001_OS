@@ -6,7 +6,7 @@ void shell() {
   char x;
   while (1) {
     if ( read( 0, &x, 1 ) ) {
-      inst_process(x);
+      process_input(x);
     }
   }
 }
@@ -19,12 +19,12 @@ uint8_t inst_end = 0;
 /*
  * Takes character and stores in instruction buffer (inst_buffer) which is 256 chars long.
  */
-int inst_process(uint8_t data) //Returns 1 if buffer is full. Otherwise 0.
+int process_input(uint8_t data) //Returns 1 if buffer is full. Otherwise 0.
 {
     switch (data) {
     case '\r':
         inst_buffer[inst_end] = '\0';
-        exec_command(inst_buffer); //Determines which cmd function to run.
+        process_command(inst_buffer); //Determines which cmd function to run.
         inst_clear();
         write( 0, "\r\n", 2 );
         break;
