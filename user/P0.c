@@ -6,7 +6,7 @@ void P0() {
   char type;
   char x = 0x30;
   char newline = '\n';
-  int count = 10000;
+  // int count = 10000;
   pid_t pid = fork();
   if (pid) {
     type = 'P';
@@ -24,9 +24,9 @@ void P0() {
     write( 0, &x, 1 ); //yield();
     write( 0, &newline, 1);
     x++;
-    if( type == 'P' && count-- == 0 ) {
-      exit();
-    }
+    // if( type == 'P' && count-- == 0 ) {
+    //   exit();
+    // }
     if(x > 0x39) {
       x = 0x30;
     }

@@ -72,7 +72,8 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
     }
     case 0x03 : { // fork
       pcb_t new;
-      uint32_t pid_new = copy_proc( &new, ctx );
+      pcb_t old = {current.pid, *ctx};
+      uint32_t pid_new = copy_proc( &new, &old );
 
       new.ctx.gpr[ 0 ] = 0; //Set return value to zero (for child)
       push( &queue, &new );
@@ -81,12 +82,9 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       break;
     }
     case 0x04 : { // exit
-      if (pop( &queue, &current )) {
-        // This shouldn't happen.
-      }
-      else {
-        *ctx = current.ctx;
-      }
+      free_pid( current.pid );
+      pop( &queue, &current ); // Need to handle nothing on queue.
+      *ctx = current.ctx;
       break;
     }
     case 0x05 : { // execv
@@ -96,9 +94,16 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       //Must now alter currently running process.
       //Wipe pcb apart from pid.
       pid_t pid = current.pid;
-      memset(current, 0, sizeof(pcb_t));
+      memset(&current, 0, sizeof(pcb_t));
+      current.pid = pid;
+      current.ctx.cpsr = 0x50;
+      current.ctx.pc = (uint32_t) entry_P0;
+      current.ctx.sp = get_stack_addr( pid );
+      memset( (uint32_t*) (current.ctx.sp - CHUNK), 0, CHUNK );
 
-      //Wipe stack. 
+      *ctx = current.ctx;
+
+      //Wipe stack.
       break;
     }
     default   : { // unknown
@@ -124,20 +129,12 @@ void kernel_handler_irq(ctx_t *ctx) { //ctx_t* ctx
     }
     case GIC_SOURCE_UART0: {
       uint8_t x = PL011_getc( UART0 );
-      insert( &in_buf, x );
-      // inst_process( x );
-
-      // if ( x == 'n' ) {
-      //   if (!idle_flag) {
-      //     push( &queue, &current );
-      //   }
-      //   else idle_flag = 0;
-      //   new_proc( &current, entry_P0 );
-      //   *ctx = current.ctx;
-      // }
-      // else if ( x == 'e' ) {
-      //
-      // }
+      if ( x == 0x60 ) { //backtick, so exit.
+        kernel_handler_svc( ctx, 4 );
+      }
+      else {
+        insert( &in_buf, x );
+      }
 
       UART0->ICR = 0x10;
       break;
