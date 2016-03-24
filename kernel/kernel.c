@@ -34,10 +34,10 @@ void kernel_handler_rst( ctx_t* ctx ) {
   GICC0->CTLR            = 0x00000001; // enable GIC interface
   GICD0->CTLR            = 0x00000001; // enable GIC distributor
 
-  new_proc(&current, entry_shell);
-
-  *ctx = current.ctx;
-  foreground = current.pid;
+  pid_t pid = new_proc( entry_shell );
+  current = &process_table[ pid ];
+  *ctx = current->ctx;
+  fg = current;
 
   irq_enable();
   return;
@@ -71,20 +71,19 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       break;
     }
     case 0x03 : { // fork
-      pcb_t new;
-      pcb_t old = {current.pid, *ctx};
-      uint32_t pid_new = copy_proc( &new, &old );
+      pcb_t old = {current->pid, *ctx};
+      uint32_t pid = copy_proc( &old );
 
-      new.ctx.gpr[ 0 ] = 0; //Set return value to zero (for child)
-      push( &queue, &new );
+      process_table[ pid ].ctx.gpr[ 0 ] = 0; //Set return value to zero (for child)
+      push( &queue, &process_table[ pid ] );
 
-      ctx->gpr[ 0 ] = pid_new; //Set return value to pid of child (for parent)
+      ctx->gpr[ 0 ] = pid; //Set return value to pid of child (for parent)
       break;
     }
     case 0x04 : { // exit
-      free_pid( current.pid );
-      pop( &queue, &current ); // Need to handle nothing on queue.
-      *ctx = current.ctx;
+      free_pid( current->pid );
+      current = pop( &queue ); // Need to handle case where ther is nothing on queue.
+      *ctx = current->ctx;
       break;
     }
     case 0x05 : { // execv
@@ -93,15 +92,15 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
 
       //Must now alter currently running process.
       //Wipe pcb apart from pid.
-      pid_t pid = current.pid;
-      memset(&current, 0, sizeof(pcb_t));
-      current.pid = pid;
-      current.ctx.cpsr = 0x50;
-      current.ctx.pc = (uint32_t) entry_P0;
-      current.ctx.sp = get_stack_addr( pid );
-      memset( (uint32_t*) (current.ctx.sp - CHUNK), 0, CHUNK );
+      pid_t pid = current->pid;
+      memset( current, 0, sizeof( pcb_t ) );
+      current->pid      = pid;
+      current->ctx.cpsr = 0x50;
+      current->ctx.pc   = ( uint32_t ) entry_P0;
+      current->ctx.sp   = get_stack_addr( pid );
+      memset( ( uint32_t* ) ( current->ctx.sp - CHUNK ), 0, CHUNK );
 
-      *ctx = current.ctx;
+      *ctx = current->ctx;
 
       //Wipe stack.
       break;
@@ -123,7 +122,6 @@ void kernel_handler_irq(ctx_t *ctx) { //ctx_t* ctx
   switch( id ) {
     case GIC_SOURCE_TIMER0: {
       scheduler( ctx );
-      *ctx = current.ctx;
       TIMER0->Timer1IntClr = 0x01;
       break;
     }

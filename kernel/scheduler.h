@@ -12,15 +12,17 @@
 typedef void (*entry_point)();
 
 void scheduler( ctx_t *ctx );
-pid_t new_proc( pcb_t *pcb, entry_point e );
-pid_t copy_proc( pcb_t *dest, pcb_t *source );
+pid_t new_proc( entry_point e );
+pid_t copy_proc( pcb_t *source );
 uint32_t get_stack_addr( pid_t pid );
 void free_pid( pid_t pid );
 
 extern queue_t queue;
-extern pcb_t current;
-extern pcb_t idle_pcb;
-extern pid_t foreground;
+extern pcb_t process_table[ PID_MAX ];
+extern pcb_t *current;
+extern pcb_t *fg;
+// extern pcb_t idle_pcb;
+
 extern int idle_flag;
 
 #endif
