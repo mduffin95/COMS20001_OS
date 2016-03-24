@@ -55,7 +55,7 @@ void free_pid( pid_t pid ) {
 
 /*
  * Creates a new user mode process. Starts at entry point e.
- * Writes to pcb the new process control block.
+ * Returns the PID of the new process.
  */
 pid_t new_proc( entry_point e ) {
   pid_t pid = get_pid();
@@ -68,8 +68,8 @@ pid_t new_proc( entry_point e ) {
 }
 
 /*
- * Copy the source process to the destination process. Creates a new PID
- * and new stack space. Copies across the source stack.
+ * Copy the source process to a new entry in the process table. Creates
+ * a new PID (which is returned) and new stack space. Copies across the source stack.
  */
 pid_t copy_proc( pcb_t *source ) {
   pid_t pid = get_pid();

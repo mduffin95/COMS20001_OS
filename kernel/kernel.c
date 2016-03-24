@@ -83,6 +83,10 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
     case 0x04 : { // exit
       free_pid( current->pid );
       current = pop( &queue ); // Need to handle case where ther is nothing on queue.
+      if( current==NULL ) {
+        pid_t pid = new_proc( entry_shell );
+        current = &process_table[ pid ];
+      }
       *ctx = current->ctx;
       break;
     }
