@@ -5,12 +5,12 @@
 
 #define QUEUE_SZ 10
 
-typedef struct queue_t {
+typedef struct queue {
   pcb_t *contents[ QUEUE_SZ ];
-  int front, count;
+  unsigned int front, count;
 } queue_t;
 
-void push( queue_t *q, pcb_t *pcb );
-pcb_t *pop( queue_t *q );
+void queue_push( queue_t *q, pcb_t *pcb );
+pcb_t *queue_pop( queue_t *q );
 
 #endif

@@ -15,8 +15,8 @@ uint8_t pids[PID_MAX] = {0};
 
 void scheduler( ctx_t *ctx ) {
   current->ctx = *ctx;
-  push( &queue, current ); //Push current pcb onto queue
-  current = pop( &queue );  //Get new pcb from queue to start executing
+  queue_push( &queue, current ); //Push current pcb onto queue
+  current = queue_pop( &queue );  //Get new pcb from queue to start executing
   *ctx = current->ctx;
 }
 

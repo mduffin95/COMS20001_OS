@@ -12,6 +12,7 @@ typedef int pid_t;
 
 typedef struct {
   pid_t pid;
+  uint8_t prty;
   ctx_t ctx;
 } pcb_t;
 

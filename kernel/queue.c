@@ -6,7 +6,7 @@
  * Pushes a PCB pointer onto the queue. The pointer points to a PCB on
  * the process table.
  */
-void push( queue_t *q, pcb_t *pcb ) {
+void queue_push( queue_t *q, pcb_t *pcb ) {
   int index = q->front + q->count;
   if ( index >= QUEUE_SZ ) {
     index -= QUEUE_SZ;
@@ -19,7 +19,7 @@ void push( queue_t *q, pcb_t *pcb ) {
 /*
  * Does the opposite of the above.
  */
-pcb_t *pop( queue_t *q ) {
+pcb_t *queue_pop( queue_t *q ) {
   if (!q->count) {
     return NULL;
   }
