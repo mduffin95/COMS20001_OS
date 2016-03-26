@@ -1,6 +1,10 @@
 #ifndef __HEAP_H
 #define __HEAP_H
 
+#include "types.h"
+
+#define HEAP_SZ 32
+
 typedef struct heap {
   pcb_t *contents[ HEAP_SZ ];
   unsigned int count;

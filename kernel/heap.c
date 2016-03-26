@@ -10,7 +10,33 @@ void heap_push( heap_t *h, pcb_t *pcb ) {
 }
 
 pcb_t *heap_pop( heap_t *h ) {
-
+  pcb_t *tmp, *result;
+  result = h->contents[ 0 ];
+  h->contents[ 0 ] = h->contents[ h->count-1 ];
+  h->count--;
+  unsigned int l, r, i, g;
+  i = 0;
+  while( i < h->count ) {
+    l = left( i );
+    r = right( i );
+    if( l < h->count && h->contents[ l ]->prty > h->contents[ i ]->prty) {
+      g = l;
+    }
+    else {
+      g = i;
+    }
+    if( r < h->count && h->contents[ r ]->prty > h->contents[ g ]->prty) {
+      g = r;
+    }
+    if( g != i ) { //swap i and g
+      tmp = h->contents[ g ];
+      h->contents[ g ] = h->contents[ i ];
+      h->contents[ i ] = tmp;
+      i = g;
+    }
+    else break;
+  }
+  return result;
 }
 
 unsigned int parent( unsigned int i ) {

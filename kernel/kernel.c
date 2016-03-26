@@ -1,5 +1,4 @@
 #include "kernel.h"
-#include "queue.h"
 
 #include   "GIC.h"
 #include "PL011.h"
@@ -71,18 +70,18 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       break;
     }
     case 0x03 : { // fork
-      pcb_t old = {current->pid, *ctx};
+      pcb_t old = {current->pid, 0, *ctx};
       uint32_t pid = copy_proc( &old );
 
       process_table[ pid ].ctx.gpr[ 0 ] = 0; //Set return value to zero (for child)
-      push( &queue, &process_table[ pid ] );
+      push( &process_table[ pid ] );
 
       ctx->gpr[ 0 ] = pid; //Set return value to pid of child (for parent)
       break;
     }
     case 0x04 : { // exit
       free_pid( current->pid );
-      current = pop( &queue ); // Need to handle case where ther is nothing on queue.
+      current = pop();
       if( current==NULL ) {
         pid_t pid = new_proc( entry_shell );
         current = &process_table[ pid ];

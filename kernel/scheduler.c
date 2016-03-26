@@ -1,9 +1,10 @@
 #include "scheduler.h"
+#include "queue.h"
+#include "heap.h"
 
 uint32_t get_tos( pid_t pid );
 
 pcb_t process_table[PID_MAX] = {0};
-queue_t queue = {0};
 pcb_t *current;
 pcb_t *fg;
 int offset = 0;
@@ -13,10 +14,34 @@ int offset = 0;
  */
 uint8_t pids[PID_MAX] = {0};
 
+#ifdef ROUND_ROBIN
+queue_t queue = {0};
+#endif
+#ifdef FIXED_PRIO
+heap_t heap = {0};
+#endif
+
+void push( pcb_t *pcb ) {
+  #ifdef ROUND_ROBIN
+  queue_push( &queue, pcb );
+  #endif
+  #ifdef FIXED_PRIO
+  heap_push( &heap, pcb );
+  #endif
+}
+pcb_t *pop() {
+  #ifdef ROUND_ROBIN
+  return queue_pop( &queue );
+  #endif
+  #ifdef FIXED_PRIO
+  return heap_pop( &heap );
+  #endif
+}
+
 void scheduler( ctx_t *ctx ) {
   current->ctx = *ctx;
-  queue_push( &queue, current ); //Push current pcb onto queue
-  current = queue_pop( &queue );  //Get new pcb from queue to start executing
+  push( current ); //Push current pcb
+  current = pop();  //Get new pcb to start executing
   *ctx = current->ctx;
 }
 

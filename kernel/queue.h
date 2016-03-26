@@ -1,7 +1,7 @@
 #ifndef __QUEUE_H
 #define __QUEUE_H
 
-#include "kernel.h"
+#include "types.h"
 
 #define QUEUE_SZ 10
 
