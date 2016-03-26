@@ -99,7 +99,12 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       memset( current, 0, sizeof( pcb_t ) );
       current->pid      = pid;
       current->ctx.cpsr = 0x50;
-      current->ctx.pc   = ( uint32_t ) entry_P0;
+      if( !strcmp( path, "P0" ) ) {
+        current->ctx.pc   = ( uint32_t ) entry_P0;
+      }
+      else {
+        current->ctx.pc   = ( uint32_t ) entry_P1;
+      }
       current->ctx.sp   = get_stack_addr( pid );
       memset( ( uint32_t* ) ( current->ctx.sp - CHUNK ), 0, CHUNK );
 

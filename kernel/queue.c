@@ -20,7 +20,7 @@ void queue_push( queue_t *q, pcb_t *pcb ) {
  * Does the opposite of the above.
  */
 pcb_t *queue_pop( queue_t *q ) {
-  if (!q->count) {
+  if ( !q->count ) {
     return NULL;
   }
   pcb_t *result = q->contents[ q->front ];

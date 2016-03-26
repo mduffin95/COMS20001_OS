@@ -6,7 +6,7 @@
 #define MAX_ARGS 10
 
 //Number of arguments followed by the arguments
-typedef void (*command)(uint8_t, uint16_t*);
+typedef void (*command)(uint8_t, char**);
 typedef struct commandStruct {
   char const *name;
   command execute;
@@ -16,6 +16,6 @@ typedef struct commandStruct {
 
 
 void process_command( char *buffer );
-void test_func(uint8_t argc, uint16_t *argv);
-void run( uint8_t argc, uint16_t *argv );
+void test_func(uint8_t argc, char **argv);
+void run( uint8_t argc, char **argv );
 #endif

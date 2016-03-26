@@ -5,13 +5,13 @@
 #include <stdlib.h>
 
 const commandStruct commands[] = {
-  {"test", test_func, 0, "A test function."},
+  {"test", test_func, 1, "A test function."},
   {"run", run, 0, "Run a user program."},
   {"",0,0,""}
 };
 
 void process_command( char *buffer ) {
-  uint16_t args[MAX_ARGS] = {0};
+  char *args[MAX_ARGS] = {0};
   uint8_t num_args = 0;
   char *inst, *token;
 
@@ -20,7 +20,7 @@ void process_command( char *buffer ) {
 
   int i;
   for(i=0; token != NULL && i < MAX_ARGS; i++) {
-    args[i] = atoi(token);
+    args[i] = token;
     num_args++;
     token = strtok(NULL, " ");
   }
@@ -35,14 +35,14 @@ void process_command( char *buffer ) {
   }
 }
 
-void test_func(uint8_t argc, uint16_t *argv) {
-  write( 0, "E", 1 );
+void test_func(uint8_t argc, char **argv) {
+  write( 0, argv[0], strlen( argv[ 0 ] ) );
 }
 
-void run( uint8_t argc, uint16_t *argv ) {
+void run( uint8_t argc, char **argv ) {
   pid_t pid = fork();
   if(!pid) {
     //Child, so run new program.
-    execv("Blah", NULL);
+    execv( argv[ 0 ], NULL);
   }
 }
