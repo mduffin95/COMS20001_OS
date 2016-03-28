@@ -7,6 +7,7 @@
 const commandStruct commands[] = {
   {"test", test_func, 1, "A test function."},
   {"run", run, 0, "Run a user program."},
+  {"run_p", run_p, 1, "Run a user program."},
   {"",0,0,""}
 };
 
@@ -40,9 +41,17 @@ void test_func(uint8_t argc, char **argv) {
 }
 
 void run( uint8_t argc, char **argv ) {
+  prty_run( 0, argc, argv );
+}
+
+void run_p( uint8_t argc, char **argv ) {
+  prty_run ( atoi( argv[ 0 ] ), argc-1, &argv[ 1 ] );
+}
+
+void prty_run( int prty, uint8_t argc, char **argv ) {
   pid_t pid = fork();
   if(!pid) {
     //Child, so run new program.
-    execv( argv[ 0 ], NULL);
+    exec( prty, argv[ 0 ], NULL);
   }
 }

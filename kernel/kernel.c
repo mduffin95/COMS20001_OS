@@ -70,7 +70,7 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       break;
     }
     case 0x03 : { // fork
-      pcb_t old = {current->pid, 0, *ctx};
+      pcb_t old = {current->pid, current->prty, *ctx};
       uint32_t pid = copy_proc( &old );
 
       process_table[ pid ].ctx.gpr[ 0 ] = 0; //Set return value to zero (for child)
@@ -90,13 +90,15 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       break;
     }
     case 0x05 : { // execv
-      char *path = ( char* )( ctx->gpr[ 0 ] );
-      char **argv = ( char** )( ctx->gpr[ 1 ] );
+      int prty = ( int )( ctx->gpr[ 0 ] );
+      char *path = ( char* )( ctx->gpr[ 1 ] );
+      char **argv = ( char** )( ctx->gpr[ 2 ] );
 
       //Must now alter currently running process.
       //Wipe pcb apart from pid.
       pid_t pid = current->pid;
       memset( current, 0, sizeof( pcb_t ) );
+      current->prty     = prty;
       current->pid      = pid;
       current->ctx.cpsr = 0x50;
       if( !strcmp( path, "P0" ) ) {

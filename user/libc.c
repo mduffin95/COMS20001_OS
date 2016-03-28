@@ -49,11 +49,12 @@ void exit() {
   asm volatile( "svc #4 \n" );
 }
 
-void execv(char *path, char **argv) {
-  asm volatile( "mov r0, %[p] \n"
-                "mov r1, %[a] \n"
+void exec(int prty, char *path, char **argv) {
+  asm volatile( "mov r0, %[pr] \n"
+                "mov r1, %[pa] \n"
+                "mov r2, %[a] \n"
                 "svc #5 \n"
               :
-              : [p] "r" (path), [a] "r" (argv)
-              : "r0", "r1" );
+              : [pr] "r" (prty), [pa] "r" (path), [a] "r" (argv)
+              : "r0", "r1", "r2" );
 }

@@ -14,10 +14,9 @@ int offset = 0;
  */
 uint8_t pids[PID_MAX] = {0};
 
-#ifdef ROUND_ROBIN
 queue_t queue = {0};
-#endif
 #ifdef FIXED_PRIO
+uint8_t current_prty = 0;
 heap_t heap = {0};
 #endif
 
@@ -26,17 +25,37 @@ void push( pcb_t *pcb ) {
   queue_push( &queue, pcb );
   #endif
   #ifdef FIXED_PRIO
-  heap_push( &heap, pcb );
+  if( pcb->prty == current_prty ) {
+    queue_push( &queue, pcb );
+  }
+  else {
+    heap_push( &heap, pcb );
+  }
   #endif
 }
 
 pcb_t *pop() {
-  #ifdef ROUND_ROBIN
-  return queue_pop( &queue );
-  #endif
   #ifdef FIXED_PRIO
-  return heap_pop( &heap );
+  if( heap.count > 0 ) {
+    uint8_t heap_prty = heap_peek( &heap )->prty;
+    if( heap_prty > current_prty ) {
+      current_prty = heap_prty;
+      while( queue.count > 0 ) {
+        heap_push( &heap, queue_pop( &queue ) );
+      }
+      while( heap.count > 0 && heap_peek( &heap )->prty == current_prty ) {
+        queue_push( &queue, heap_pop( &heap ) );
+      }
+    }
+    pcb_t *result = queue_pop( &queue );
+    if( !result ) {
+      if( heap_prty ) current_prty = heap_prty - 1;
+      return pop();
+    }
+    return result;
+  }
   #endif
+  return queue_pop( &queue );
 }
 
 void scheduler( ctx_t *ctx ) {
@@ -101,6 +120,7 @@ pid_t copy_proc( pcb_t *source ) {
   pid_t pid = get_pid();
   memset( &process_table[ pid ], 0, sizeof( pcb_t ) );
   process_table[ pid ].pid      = pid;
+  process_table[ pid ].prty     = source->prty;
   process_table[ pid ].ctx      = source->ctx;
   process_table[ pid ].ctx.sp   = (get_stack_addr( pid ) & 0xFFFFF000) \
                                   + (source->ctx.sp & 0xFFF);

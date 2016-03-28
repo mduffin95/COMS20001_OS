@@ -11,6 +11,7 @@ typedef struct heap {
 } heap_t;
 
 void heap_push( heap_t *h, pcb_t *pcb );
+pcb_t *heap_peek( heap_t *h );
 pcb_t *heap_pop( heap_t *h );
 
 unsigned int parent( unsigned int i );

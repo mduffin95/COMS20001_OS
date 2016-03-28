@@ -9,7 +9,7 @@
 void yield();
 pid_t fork();
 void exit();
-void execv(char *path, char **argv);
+void exec(int prty, char *path, char **argv);
 
 // write n bytes from x to the file descriptor fd
 int write( int fd, void* x, size_t n );

@@ -18,4 +18,6 @@ typedef struct commandStruct {
 void process_command( char *buffer );
 void test_func(uint8_t argc, char **argv);
 void run( uint8_t argc, char **argv );
+void run_p( uint8_t argc, char **argv );
+void prty_run( int prty, uint8_t argc, char **argv );
 #endif

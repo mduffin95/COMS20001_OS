@@ -10,6 +10,13 @@ void heap_push( heap_t *h, pcb_t *pcb ) {
   h->contents[ i ] = pcb;
 }
 
+pcb_t *heap_peek( heap_t *h ) {
+  if ( !h->count ) {
+    return NULL;
+  }
+  return h->contents[ 0 ];
+}
+
 pcb_t *heap_pop( heap_t *h ) {
   if ( !h->count ) {
     return NULL;
