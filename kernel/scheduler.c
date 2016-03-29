@@ -38,18 +38,20 @@ pcb_t *pop() {
   #ifdef FIXED_PRIO
   if( heap.count > 0 ) {
     uint8_t heap_prty = heap_peek( &heap )->prty;
-    if( heap_prty > current_prty ) {
-      current_prty = heap_prty;
-      while( queue.count > 0 ) {
-        heap_push( &heap, queue_pop( &queue ) );
+    if( heap_prty >= current_prty ) {
+      if( heap_prty > current_prty ) { //When prty is superseded by new task on heap
+        current_prty = heap_prty;
+        while( queue.count > 0 ) {
+          heap_push( &heap, queue_pop( &queue ) ); //Move from queue to heap
+        }
       }
       while( heap.count > 0 && heap_peek( &heap )->prty == current_prty ) {
-        queue_push( &queue, heap_pop( &heap ) );
+        queue_push( &queue, heap_pop( &heap ) ); //Move from heap to queue
       }
     }
     pcb_t *result = queue_pop( &queue );
     if( !result ) {
-      if( heap_prty ) current_prty = heap_prty - 1;
+      current_prty = 0;
       return pop();
     }
     return result;
