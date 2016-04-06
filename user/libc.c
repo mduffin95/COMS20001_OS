@@ -58,3 +58,22 @@ void exec(int prty, char *path, char **argv) {
               : [pr] "r" (prty), [pa] "r" (path), [a] "r" (argv)
               : "r0", "r1", "r2" );
 }
+
+uint8_t *chan(uint8_t key) {
+  return  (uint8_t *) (&ipc + (key << 1));
+}
+
+uint8_t chan_receive(uint8_t key) {
+  volatile uint8_t *c = chan(key);
+  while( !*c ); //Wait for channel to be ready
+  *c = 0;
+  uint8_t res = *(c+1);
+  return res;
+}
+
+void chan_send(uint8_t key, uint8_t val) {
+  volatile uint8_t *c = chan(key);
+  while( *c );
+  *(c+1) = val;
+  *c = 1;
+}

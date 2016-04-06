@@ -15,4 +15,10 @@ void exec(int prty, char *path, char **argv);
 int write( int fd, void* x, size_t n );
 int read( int fd, void *x, size_t n );
 
+extern uint32_t ipc;
+
+uint8_t *chan(uint8_t key);
+uint8_t chan_receive(uint8_t key);
+void chan_send(uint8_t key, uint8_t val);
+
 #endif
