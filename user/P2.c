@@ -34,7 +34,7 @@ void P2() {
   uint8_t y[32] = {0,9,0,7,0,6,0,5,0,4};
 
   while( 1 ) {
-    read_file(2, x, 0, BLOCK_SZ);
-    write_file(2, y, 0, BLOCK_SZ);
+    read_file(2, x, 0, 1);
+    write_file(2, y, 0, 1);
   }
 }
