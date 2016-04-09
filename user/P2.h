@@ -6,4 +6,6 @@
 
 #include "libc.h"
 
+void P2();
+
 #endif

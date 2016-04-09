@@ -10,7 +10,7 @@ uint32_t weight( uint32_t x ) {
   return x;
 }
 
-void P2() {
+void P4() {
   while( 1 ) {
     // compute the Hamming weight of each x for 2^8 < x < 2^24
 

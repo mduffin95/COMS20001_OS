@@ -16,6 +16,7 @@
 // Include definitions relating to the 2 user programs.
 #include "P0.h"
 #include "P1.h"
+#include "P2.h"
 #include "shell.h"
 
 void kernel_handler_rst( ctx_t* ctx ) {
@@ -104,8 +105,11 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       if( !strcmp( path, "P0" ) ) {
         current->ctx.pc   = ( uint32_t ) entry_P0;
       }
-      else {
+      else if( !strcmp( path, "P1" ) ) {
         current->ctx.pc   = ( uint32_t ) entry_P1;
+      }
+      else {
+        current->ctx.pc   = ( uint32_t ) &P2;
       }
       current->ctx.sp   = get_stack_addr( pid );
       memset( ( uint32_t* ) ( current->ctx.sp - CHUNK ), 0, CHUNK );
