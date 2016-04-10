@@ -6,6 +6,7 @@
 
 #define NUM_EXT     7
 #define BLOCK_SZ    32
+#define INODE_START 2
 #define DATA_START  258
 
 typedef struct extent {
@@ -15,8 +16,8 @@ typedef struct extent {
 
 typedef struct inode {
   uint16_t type; // 0 = normal, 1 = directory, 2 = special
-  extent_t extents[ NUM_EXT ];
   uint16_t size;
+  extent_t extents[ NUM_EXT ];
 } inode_t;
 
 // typedef struct directory {
@@ -32,7 +33,11 @@ typedef struct open_file {
   int sfid;
 } of_t;
 
-void read_file(int sfid, void *x, int rw_ptr, size_t n);
-void write_file(int sfid, void *x, int rw_ptr, size_t n);
+void read_file(int sfid, void *x, size_t n);
+void write_file(int sfid, void *x, size_t n);
+int open_file(int sfid);
+
+int allocate(extent_t *e, int n);
+int extend(extent_t *e, int n);
 
 #endif
