@@ -33,8 +33,8 @@ typedef struct open_file {
   int sfid;
 } of_t;
 
-void read_file(int sfid, void *x, size_t n);
-void write_file(int sfid, void *x, size_t n);
+int read_file(int sfid, void *x, size_t n);
+int write_file(int sfid, void *x, size_t n);
 int open_file(int sfid);
 
 int allocate(extent_t *e, int n);
