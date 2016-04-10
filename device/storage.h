@@ -39,5 +39,6 @@ int open_file(int sfid);
 
 int allocate(extent_t *e, int n);
 int extend(extent_t *e, int n);
+void format(void);
 
 #endif

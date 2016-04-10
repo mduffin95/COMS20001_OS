@@ -35,6 +35,7 @@ void write_file(int ufid, void *x, size_t n) { //n is number of blocks
     else if( offset + n > tmp_inode.extents[i].len ) { //Case 3
       int diff = tmp_inode.extents[i].len - offset;
       disk_wr( tmp_inode.extents[i].index, (uint8_t *) x, diff );
+      of_table[ufid].rw_ptr += diff;
       write_file( ufid, x + diff, n - diff);
       return;
     }
@@ -52,16 +53,19 @@ void write_file(int ufid, void *x, size_t n) { //n is number of blocks
         //Could not extend. Allocate a new extent.
         allocate( &(tmp_inode.extents[i]), offset + n );
       }
+      else {
+        tmp_inode.size += ext; //Increase size of the file
+      }
     }
     else { //Case 1. No extents. Allocate a new one.
       allocate( &(tmp_inode.extents[i]), offset + n );
     }
+    disk_wr( sfid, (uint8_t *) &tmp_inode, BLOCK_SZ ); //Write modified inode to disk.
     write_file( ufid, x, n ); //Try again
     return;
   }
   else {
-    //There is space within an existing extent. Also need to check whether
-    //extent is large enough to contian the whole n blocks of the write.
+    //There is space within an existing extent.
     int block = tmp_inode.extents[i].index + offset;
     disk_wr( block, (uint8_t *) x, n * BLOCK_SZ);
     of_table[ufid].rw_ptr += n;
@@ -86,11 +90,11 @@ void close_file(int ufid) {
  * Function that takes an extent and tries to extend it by n blocks.
  * Will round up to the nearest multiple of 8 blocks.
  */
-int extend(extent_t *e, int n) {
+int extend(extent_t *e, int n) { //Round n up to the nearest multiple of 8
   uint8_t bitmap[ BLOCK_SZ ] = {0};
   disk_rd( 1, bitmap, BLOCK_SZ );
-  int i = (e->index + e->len) / 8; //Byte after
-  int j = (n + 7) / 8; //Round up to nearest byte
+  int i = (e->index + e->len - DATA_START) >> 3;
+  int j = (n + 7) >> 3;
   int k;
   for(k = 0; k < j; k++) {
     if( bitmap[i + k] ) { //If some are already allocated
@@ -100,7 +104,7 @@ int extend(extent_t *e, int n) {
   }
   e->len += k * 8;
   disk_wr( 1, bitmap, BLOCK_SZ );
-  return k;
+  return k * 8;
 }
 
 int allocate(extent_t *e, int n) {
@@ -124,4 +128,17 @@ int allocate(extent_t *e, int n) {
     return k * 8;
   }
   return 0;
+}
+
+void format(void) {
+  uint8_t bitmap[ BLOCK_SZ ] = { 255 };
+  disk_wr( 1, bitmap, BLOCK_SZ ); //8 data blocks allocated
+  bitmap[0] = 1;
+  disk_wr( 0, bitmap, BLOCK_SZ ); //One inode
+  bitmap[0] = 0;
+  bitmap[2] = 0x08;
+  bitmap[4] = 0x02;
+  bitmap[5] = 0x01;
+  bitmap[6] = 0x08;
+  disk_wr( 2, bitmap, BLOCK_SZ );
 }
