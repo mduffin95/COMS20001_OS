@@ -1,9 +1,8 @@
 #ifndef __DIRECTORY_H
 #define __DIRECTORY_H
 
-typedef struct fcb { //File Control Block. An entry in the Open File Table.
+int open( const char *pathname ) { //Return the file descriptor
 
-
-} fcb_t;
+}
 
 #endif

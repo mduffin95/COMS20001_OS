@@ -28,9 +28,10 @@ typedef struct inode {
 //
 // } dir_entry_t;
 
-typedef struct open_file {
+typedef struct open_file { //This needs to store the inode until the file is closed.
   int rw_ptr;
   int sfid;
+  inode_t inode;
 } of_t;
 
 int read_file(int sfid, void *x, size_t n);

@@ -33,7 +33,7 @@ void P2() {
   format();
 
   uint8_t x[32];
-  uint8_t y[32] = {0,9,0,7,0,6,0,5,0,4};
+  uint8_t y[32] = {'h','e','l','l','o',' ','w','o','r','l','d','\0'};
 
   int fd = open_file(2);
 
@@ -41,6 +41,6 @@ void P2() {
     read_file(fd, x, 1);
     //lseek( fd, -1, 0 );
     write_file(fd, y, 1);
-    //lseek( fd, -1, 0 );
+    lseek( fd, -1, 0 );
   }
 }

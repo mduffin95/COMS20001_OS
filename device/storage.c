@@ -6,25 +6,24 @@ of_t of_table[10];
 // Need to incorporate rw pointer
 int read_file(int ufid, void *x, size_t n) {
   int sfid = of_table[ufid].sfid;
-  inode_t tmp_inode;
-  disk_rd( sfid, (uint8_t *) &tmp_inode, BLOCK_SZ );
+  inode_t *inode = &(of_table[ufid].inode);
   int offset = of_table[ufid].rw_ptr;
   int total_read = 0;
-  if( tmp_inode.extents[0].index < DATA_START ) return -1;
+  if( inode->extents[0].index < DATA_START ) return -1;
   int i = 0;
-  while( tmp_inode.extents[i].index >= DATA_START && i < NUM_EXT ) {
-    if( offset >= tmp_inode.extents[i].len ) {
-      offset -= tmp_inode.extents[i].len;
+  while( inode->extents[i].index >= DATA_START && i < NUM_EXT ) {
+    if( offset >= inode->extents[i].len ) {
+      offset -= inode->extents[i].len;
     }
-    else if( offset + n > tmp_inode.extents[i].len ) {
-      int diff = tmp_inode.extents[i].len - offset;
-      disk_rd( tmp_inode.extents[0].index + offset, (uint8_t *) x, diff * BLOCK_SZ );
+    else if( offset + n > inode->extents[i].len ) {
+      int diff = inode->extents[i].len - offset;
+      disk_rd( inode->extents[0].index + offset, (uint8_t *) x, diff * BLOCK_SZ );
       x += diff;
       n -= diff;
       total_read += diff;
     }
     else {
-      disk_rd( tmp_inode.extents[0].index + offset, (uint8_t *) x, n * BLOCK_SZ );
+      disk_rd( inode->extents[0].index + offset, (uint8_t *) x, n * BLOCK_SZ );
       total_read += n;
       of_table[ufid].rw_ptr += n;
       break;
@@ -41,17 +40,16 @@ int read_file(int ufid, void *x, size_t n) {
  */
 int write_file(int ufid, void *x, size_t n) { //n is number of blocks
   int sfid = of_table[ufid].sfid;
-  inode_t tmp_inode;
-  disk_rd( sfid, (uint8_t *) &tmp_inode, BLOCK_SZ );
+  inode_t *inode = &(of_table[ufid].inode);
   int offset = of_table[ufid].rw_ptr;
-  if( tmp_inode.extents[0].index < DATA_START ) goto cleanupD; //No extents.
+  if( inode->extents[0].index < DATA_START ) goto cleanupD; //No extents.
 
   int i = 0;
-  while( tmp_inode.extents[i].index >= DATA_START && i < NUM_EXT ) { //Find out which extent the rw pointer lies within
-    if( offset >= tmp_inode.extents[i].len ) {
-      offset -= tmp_inode.extents[i].len;
+  while( inode->extents[i].index >= DATA_START && i < NUM_EXT ) { //Find out which extent the rw pointer lies within
+    if( offset >= inode->extents[i].len ) {
+      offset -= inode->extents[i].len;
     }
-    else if( offset + n > tmp_inode.extents[i].len ) { //Case 1
+    else if( offset + n > inode->extents[i].len ) { //Case 1
       goto cleanupB;
     }
     else goto cleanupA;
@@ -60,32 +58,30 @@ int write_file(int ufid, void *x, size_t n) { //n is number of blocks
   goto cleanupC;
 
   cleanupA: //rw pointer is within extent. There is enough room.
-    disk_wr( tmp_inode.extents[i].index + offset, (uint8_t *) x, n * BLOCK_SZ);
+    disk_wr( inode->extents[i].index + offset, (uint8_t *) x, n * BLOCK_SZ);
     of_table[ufid].rw_ptr += n;
     return n;
 
   cleanupB: { //rw pointer is within extent but not enough room for whole write.
-    int diff = tmp_inode.extents[i].len - offset;
-    disk_wr( tmp_inode.extents[i].index + offset, (uint8_t *) x, diff * BLOCK_SZ );
+    int diff = inode->extents[i].len - offset;
+    disk_wr( inode->extents[i].index + offset, (uint8_t *) x, diff * BLOCK_SZ );
     of_table[ufid].rw_ptr += diff;
     write_file( ufid, x + diff, n - diff);
     return n;
   }
 
   cleanupC: {//There are already extents but need another.
-    int ext = extend( &(tmp_inode.extents[i-1]), offset + n );
+    int ext = extend( &(inode->extents[i-1]), offset + n );
     if( !ext ) //Could not extend. Allocate a new extent.
-      allocate( &(tmp_inode.extents[i]), offset + n );
+      allocate( &(inode->extents[i]), offset + n );
     else
-      tmp_inode.size += ext; //Increase size of the file
-    disk_wr( sfid, (uint8_t *) &tmp_inode, BLOCK_SZ ); //Write modified inode to disk.
+      inode->size += ext; //Increase size of the file
     write_file( ufid, x, n ); //Try again
     return n;
   }
 
   cleanupD: //There are no extents. Add one.
-    allocate( &(tmp_inode.extents[i]), offset + n );
-    disk_wr( sfid, (uint8_t *) &tmp_inode, BLOCK_SZ ); //Write modified inode to disk.
+    allocate( &(inode->extents[i]), offset + n );
     write_file( ufid, x, n ); //Try again
     return n;
 
@@ -97,10 +93,12 @@ int open_file(int sfid) {
     ufid++;
   }
   of_table[ufid].sfid = sfid;
+  disk_rd( sfid, (uint8_t *) &(of_table[ufid].inode), BLOCK_SZ ); //Read inode into memory
   return ufid;
 }
 
 void close_file(int ufid) {
+  disk_wr( of_table[ufid].sfid, (uint8_t *) &(of_table[ufid].inode), BLOCK_SZ ); //Write out inode
   of_table[ufid].sfid = 0;
   of_table[ufid].rw_ptr = 0;
 }
