@@ -7,6 +7,7 @@
 #include "interrupt.h"
 #include "types.h"
 #include "scheduler.h"
+#include "storage.h"
 // #include "inst.h"
 #include "io.h"
 // Include functionality from newlib, the embedded standard C library.
@@ -54,11 +55,18 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       char*  x = ( char* )( ctx->gpr[ 1 ] );
       int    n = ( int   )( ctx->gpr[ 2 ] );
 
-      for( int i = 0; i < n; i++ ) {
-        PL011_putc( UART0, *x++ );
+      int res;
+      if( fd >= 0 ) {
+        res = write_file( fd, x, n );
+      }
+      else {
+        res = n;
+        for( int i = 0; i < n; i++ ) {
+          PL011_putc( UART0, *x++ );
+        }
       }
 
-      ctx->gpr[ 0 ] = n;
+      ctx->gpr[ 0 ] = res;
       break;
     }
     case 0x02 : { // read( fd, x, n )
@@ -66,7 +74,14 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       char*  x = ( char* )( ctx->gpr[ 1 ] );
       int    n = ( int   )( ctx->gpr[ 2 ] );
 
-      int res = extract_buf( x, n );
+      int res;
+      if( fd >= 0 ) {
+        res = read_file( fd, x, n );
+      }
+      else {
+        int res = extract_buf( x, n );
+      }
+
       ctx->gpr[ 0 ] = res;
       break;
     }
@@ -90,7 +105,7 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       *ctx = current->ctx;
       break;
     }
-    case 0x05 : { // execv
+    case 0x05 : { // exec
       int prty = ( int )( ctx->gpr[ 0 ] );
       char *path = ( char* )( ctx->gpr[ 1 ] );
       char **argv = ( char** )( ctx->gpr[ 2 ] );
@@ -118,6 +133,20 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
 
       //Wipe stack.
       break;
+    }
+    case 0x06 : { // open
+      char *path = ( char* )( ctx->gpr[ 0 ] );
+      int res = open_file( 2 );
+      ctx->gpr[ 0 ] = res;
+      break;
+    }
+    case 0x07 : { //lseek
+      int     fd = ( int )( ctx->gpr[ 0 ] );
+      int offset = ( int )( ctx->gpr[ 1 ] );
+      int whence = ( int )( ctx->gpr[ 2 ] );
+
+      int res = lseek_file( fd, offset, whence );
+      ctx->gpr[ 0 ] = res;
     }
     default   : { // unknown
       break;

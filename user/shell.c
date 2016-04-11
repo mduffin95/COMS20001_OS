@@ -5,7 +5,7 @@
 void shell() {
   char x;
   while (1) {
-    if ( read( 0, &x, 1 ) ) {
+    if ( read( -1, &x, 1 ) ) {
       process_input(x);
     }
   }
@@ -26,19 +26,19 @@ int process_input(uint8_t data) //Returns 1 if buffer is full. Otherwise 0.
         inst_buffer[inst_end] = '\0';
         process_command(inst_buffer); //Determines which cmd function to run.
         inst_clear();
-        write( 0, "\r\n", 2 );
+        write( -1, "\r\n", 2 );
         break;
     case '\n':
         //ignore
         break;
     case 127:
         inst_del();
-        write( 0, &data, 1 );
+        write( -1, &data, 1 );
         // PL011_putc( UART0,  data  );
         break;
     default:
         // PL011_putc( UART0,  data  );
-        write( 0, &data, 1 );
+        write( -1, &data, 1 );
         return inst_add(data);
     }
     return 0;

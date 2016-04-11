@@ -37,7 +37,7 @@ typedef struct open_file { //This needs to store the inode until the file is clo
 int read_file(int sfid, void *x, size_t n);
 int write_file(int sfid, void *x, size_t n);
 int open_file(int sfid);
-int lseek(int ufid, int offset, int whence);
+int lseek_file(int fd, int offset, int whence);
 
 int allocate(extent_t *e, int n);
 int extend(extent_t *e, int n);

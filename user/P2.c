@@ -1,6 +1,6 @@
 #include "P2.h"
+#include "libc.h"
 #include "storage.h"
-
 // int is_prime( uint32_t x ) {
 //   if ( !( x & 1 ) || ( x < 2 ) ) {
 //     return ( x == 2 );
@@ -35,12 +35,14 @@ void P2() {
   uint8_t x[32];
   uint8_t y[32] = {'h','e','l','l','o',' ','w','o','r','l','d','\0'};
 
-  int fd = open_file(2);
+  int fd = open( "test.txt");
 
   while( 1 ) {
-    read_file(fd, x, 1);
-    //lseek( fd, -1, 0 );
-    write_file(fd, y, 1);
-    lseek( fd, -1, 0 );
+    if( read(fd, x, 1) ) {
+      lseek( fd, -1, 0 );
+    }
+    if( write(fd, y, 1) ) {
+      lseek( fd, -1, 0 );
+    }
   }
 }

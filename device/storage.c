@@ -4,10 +4,10 @@
 of_t of_table[10];
 
 // Need to incorporate rw pointer
-int read_file(int ufid, void *x, size_t n) {
-  int sfid = of_table[ufid].sfid;
-  inode_t *inode = &(of_table[ufid].inode);
-  int offset = of_table[ufid].rw_ptr;
+int read_file( int fd, void *x, size_t n ) {
+  int sfid = of_table[fd].sfid;
+  inode_t *inode = &(of_table[fd].inode);
+  int offset = of_table[fd].rw_ptr;
   int total_read = 0;
   if( inode->extents[0].index < DATA_START ) return -1;
   int i = 0;
@@ -17,15 +17,16 @@ int read_file(int ufid, void *x, size_t n) {
     }
     else if( offset + n > inode->extents[i].len ) {
       int diff = inode->extents[i].len - offset;
-      disk_rd( inode->extents[0].index + offset, (uint8_t *) x, diff * BLOCK_SZ );
+      disk_rd( inode->extents[i].index + offset, (uint8_t *) x, diff * BLOCK_SZ );
       x += diff;
       n -= diff;
       total_read += diff;
+      of_table[fd].rw_ptr += diff;
     }
     else {
-      disk_rd( inode->extents[0].index + offset, (uint8_t *) x, n * BLOCK_SZ );
+      disk_rd( inode->extents[i].index + offset, (uint8_t *) x, n * BLOCK_SZ );
       total_read += n;
-      of_table[ufid].rw_ptr += n;
+      of_table[fd].rw_ptr += n;
       break;
     }
     i++;
@@ -35,13 +36,13 @@ int read_file(int ufid, void *x, size_t n) {
 
 
 /*
- * Read inode, read bitmap, write bitmap, write inode, write block.
+ * Read inode, read bitmap, write bitmap, write  inode, write block.
  *
  */
-int write_file(int ufid, void *x, size_t n) { //n is number of blocks
-  int sfid = of_table[ufid].sfid;
-  inode_t *inode = &(of_table[ufid].inode);
-  int offset = of_table[ufid].rw_ptr;
+int write_file( int fd, void *x, size_t n ) { //n is number of blocks
+  int sfid = of_table[fd].sfid;
+  inode_t *inode = &(of_table[fd].inode);
+  int offset = of_table[fd].rw_ptr;
   if( inode->extents[0].index < DATA_START ) goto cleanupD; //No extents.
 
   int i = 0;
@@ -59,14 +60,14 @@ int write_file(int ufid, void *x, size_t n) { //n is number of blocks
 
   cleanupA: //rw pointer is within extent. There is enough room.
     disk_wr( inode->extents[i].index + offset, (uint8_t *) x, n * BLOCK_SZ);
-    of_table[ufid].rw_ptr += n;
+    of_table[fd].rw_ptr += n;
     return n;
 
   cleanupB: { //rw pointer is within extent but not enough room for whole write.
     int diff = inode->extents[i].len - offset;
     disk_wr( inode->extents[i].index + offset, (uint8_t *) x, diff * BLOCK_SZ );
-    of_table[ufid].rw_ptr += diff;
-    write_file( ufid, x + diff, n - diff);
+    of_table[fd].rw_ptr += diff;
+    write_file( fd, x + diff, n - diff);
     return n;
   }
 
@@ -76,39 +77,39 @@ int write_file(int ufid, void *x, size_t n) { //n is number of blocks
       allocate( &(inode->extents[i]), offset + n );
     else
       inode->size += ext; //Increase size of the file
-    write_file( ufid, x, n ); //Try again
+    write_file( fd, x, n ); //Try again
     return n;
   }
 
   cleanupD: //There are no extents. Add one.
     allocate( &(inode->extents[i]), offset + n );
-    write_file( ufid, x, n ); //Try again
+    write_file( fd, x, n ); //Try again
     return n;
 
 }
 
-int open_file(int sfid) {
-  int ufid = 0;
-  while( of_table[ufid].sfid ) {
-    ufid++;
+int open_file( int sfid ) {
+  int fd = 0;
+  while( of_table[fd].sfid ) {
+    fd++;
   }
-  of_table[ufid].sfid = sfid;
-  disk_rd( sfid, (uint8_t *) &(of_table[ufid].inode), BLOCK_SZ ); //Read inode into memory
-  return ufid;
+  of_table[fd].sfid = sfid;
+  disk_rd( sfid, (uint8_t *) &(of_table[fd].inode), BLOCK_SZ ); //Read inode into memory
+  return fd;
 }
 
-void close_file(int ufid) {
-  disk_wr( of_table[ufid].sfid, (uint8_t *) &(of_table[ufid].inode), BLOCK_SZ ); //Write out inode
-  of_table[ufid].sfid = 0;
-  of_table[ufid].rw_ptr = 0;
+void close_file(int fd) {
+  disk_wr( of_table[fd].sfid, (uint8_t *) &(of_table[fd].inode), BLOCK_SZ ); //Write out inode
+  of_table[fd].sfid = 0;
+  of_table[fd].rw_ptr = 0;
 }
 
 /*
  * Returns the current offset in number of blocks from the beginning of the file.
  */
-int lseek(int ufid, int offset, int whence) {
-  of_table[ufid].rw_ptr += offset;
-  return of_table[ufid].rw_ptr;
+int lseek_file(int fd, int offset, int whence) {
+  of_table[fd].rw_ptr += offset;
+  return of_table[fd].rw_ptr;
 }
 
 /*

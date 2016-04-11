@@ -14,6 +14,8 @@ void exec(int prty, char *path, char **argv);
 // write n bytes from x to the file descriptor fd
 int write( int fd, void* x, size_t n );
 int read( int fd, void *x, size_t n );
+int open( const char *pathname );
+int lseek( int fd, int offset, int whence );
 
 extern uint32_t ipc;
 
