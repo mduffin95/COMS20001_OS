@@ -4,11 +4,12 @@
 of_t of_table[10];
 
 // Need to incorporate rw pointer
-int read_file(int ufid, void *x, size_t n) { .
+int read_file(int ufid, void *x, size_t n) {
   int sfid = of_table[ufid].sfid;
   inode_t tmp_inode;
   disk_rd( sfid, (uint8_t *) &tmp_inode, BLOCK_SZ );
   int offset = of_table[ufid].rw_ptr;
+  int total_read = 0;
   if( tmp_inode.extents[0].index < DATA_START ) return -1;
   int i = 0;
   while( tmp_inode.extents[i].index >= DATA_START && i < NUM_EXT ) {
@@ -17,16 +18,20 @@ int read_file(int ufid, void *x, size_t n) { .
     }
     else if( offset + n > tmp_inode.extents[i].len ) {
       int diff = tmp_inode.extents[i].len - offset;
-      disk_rd( tmp_inode.extents[0].index + offset, (uint8_t *) x, diff );
+      disk_rd( tmp_inode.extents[0].index + offset, (uint8_t *) x, diff * BLOCK_SZ );
       x += diff;
       n -= diff;
+      total_read += diff;
     }
     else {
-      disk_rd( tmp_inode.extents[0].index + offset, (uint8_t *) x, n * BLOCK_SZ )
+      disk_rd( tmp_inode.extents[0].index + offset, (uint8_t *) x, n * BLOCK_SZ );
+      total_read += n;
+      of_table[ufid].rw_ptr += n;
+      break;
     }
     i++;
   }
-  return 0; //Change this.
+  return total_read; //Change this.
 }
 
 
@@ -98,6 +103,14 @@ int open_file(int sfid) {
 void close_file(int ufid) {
   of_table[ufid].sfid = 0;
   of_table[ufid].rw_ptr = 0;
+}
+
+/*
+ * Returns the current offset in number of blocks from the beginning of the file.
+ */
+int lseek(int ufid, int offset, int whence) {
+  of_table[ufid].rw_ptr += offset;
+  return of_table[ufid].rw_ptr;
 }
 
 /*

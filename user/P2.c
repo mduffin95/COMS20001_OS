@@ -39,6 +39,8 @@ void P2() {
 
   while( 1 ) {
     read_file(fd, x, 1);
+    //lseek( fd, -1, 0 );
     write_file(fd, y, 1);
+    //lseek( fd, -1, 0 );
   }
 }
