@@ -79,7 +79,7 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
         res = read_file( fd, x, n );
       }
       else {
-        int res = extract_buf( x, n );
+        res = extract_buf( x, n );
       }
 
       ctx->gpr[ 0 ] = res;

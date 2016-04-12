@@ -48,7 +48,7 @@ int process_input(uint8_t data) //Returns 1 if buffer is full. Otherwise 0.
 //Adds a character to the buffer.
 int inst_add(uint8_t data)
 {
-    inst_buffer[inst_end] = data;
+    inst_buffer[inst_end] = data; //Not sure this is updated properly.
     if(inst_end == SZ_INST_BUFFER - 1)
         return 1;
     else

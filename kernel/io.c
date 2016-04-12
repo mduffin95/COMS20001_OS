@@ -29,9 +29,9 @@ uint8_t remove( buffer_t *buf ) {
 
 // Returns the number of characters extracted from the buffer.
 int extract_buf( uint8_t *x, size_t n ) {
-  char y;
+  uint8_t y;
   int count = 0;
-  while ( (y = remove( &in_buf )) && count < n ) {
+  while ( ( y = remove( &in_buf ) ) && count < n ) {
     *x = y;
     x++;
     count++;
