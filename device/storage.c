@@ -3,7 +3,9 @@
 
 of_t of_table[10];
 
-// Need to incorporate rw pointer
+/*
+ * Read n bytes of the file given by fd into x.
+ */
 int read_file( int fd, void *x, size_t n ) {
   int sfid = of_table[fd].sfid;
   inode_t *inode = &(of_table[fd].inode);
@@ -87,6 +89,13 @@ int write_file( int fd, void *x, size_t n ) { //n is number of blocks
     return n;
 
 }
+
+/*
+ * Navigate the directory structure to find the file provided.
+ */
+// int find_file( const char *pathname ) {
+//
+// }
 
 int open_file( int sfid ) {
   int fd = 0;

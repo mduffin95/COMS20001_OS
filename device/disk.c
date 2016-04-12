@@ -1,4 +1,6 @@
 #include "disk.h"
+#include "constants.h"
+#include <string.h>
 
 void addr_puth( PL011_t* d, uint32_t x ) {
   PL011_puth( d, ( x >>  0 ) & 0xFF );
@@ -35,7 +37,7 @@ uint32_t disk_get_block_num() {
              ( ( uint32_t )( x[ 1 ] ) <<  8 ) |
              ( ( uint32_t )( x[ 2 ] ) << 16 ) |
              ( ( uint32_t )( x[ 3 ] ) << 24 ) ;
-    } 
+    }
     else {
       PL011_getc( UART1       );        // read  EOL
     }
@@ -77,9 +79,9 @@ void disk_wr( uint32_t a, const uint8_t* x, int n ) {
       PL011_putc( UART1, ' '  );        // write separator
        data_puth( UART1, x, n );        // write data
       PL011_putc( UART1, '\n' );        // write EOL
-  
+
     if( PL011_geth( UART1 ) == 0x00 ) { // read  command
-      PL011_getc( UART1       );        // read  EOL  
+      PL011_getc( UART1       );        // read  EOL
 
       return;
     }
@@ -87,28 +89,45 @@ void disk_wr( uint32_t a, const uint8_t* x, int n ) {
       PL011_getc( UART1       );        // read  EOL
     }
   }
-  
+
   return;
 }
 
+//Modify so this is byte-addressable.
 void disk_rd( uint32_t a,       uint8_t* x, int n ) {
-  for( int i = 0; i < RETRY; i++ ) {
-      PL011_puth( UART1, 0x02 );        // write command
-      PL011_putc( UART1, ' '  );        // write separator
-       addr_puth( UART1, a    );        // write address
-      PL011_putc( UART1, '\n' );        // write EOL
-  
-    if( PL011_geth( UART1 ) == 0x00 ) { // read  command
-      PL011_getc( UART1       );        // read  separator
-       data_geth( UART1, x, n );        // read  data
-      PL011_getc( UART1       );        // read  EOL
+  uint32_t block = a >> 5; //Division by 32
+  uint32_t offset = a & 0x1F;
+  uint8_t buffer[ 32 ];
+  int to_write;
+  while( n > 0 ) {
+    for( int i = 0; i < RETRY; i++ ) {
+        PL011_puth( UART1, 0x02 );        // write command
+        PL011_putc( UART1, ' '  );        // write separator
+         addr_puth( UART1, block);        // write address
+        PL011_putc( UART1, '\n' );        // write EOL
 
-      return;
+      if( PL011_geth( UART1 ) == 0x00 ) { // read  command
+        PL011_getc( UART1       );        // read  separator
+         data_geth( UART1, buffer, 32);        // read  data
+        PL011_getc( UART1       );        // read  EOL
+
+        break;
+      }
+      else {
+        PL011_getc( UART1       );        // read  EOL
+      }
+    }
+    if( 32 - offset < n ) {
+      to_write = 32 - offset;
     }
     else {
-      PL011_getc( UART1       );        // read  EOL
+      to_write = n;
     }
+    memcpy( x, buffer + offset, to_write );
+    n -= to_write;
+    x += to_write;
+    block++;
+    offset = 0;
   }
-
   return;
 }

@@ -3,11 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-
-#define NUM_EXT     7
-#define BLOCK_SZ    32
-#define INODE_START 2
-#define DATA_START  258
+#include "constants.h"
 
 typedef struct extent {
   uint16_t index;
@@ -20,23 +16,20 @@ typedef struct inode {
   extent_t extents[ NUM_EXT ];
 } inode_t;
 
-// typedef struct directory {
-//   dir_entry_t entries[]
-// } dir_t;
-//
 // typedef struct dir_entry {
-//
+//   uint16_t sfid;
+//   char name[6];
 // } dir_entry_t;
 
 typedef struct open_file { //This needs to store the inode until the file is closed.
-  int rw_ptr;
-  int sfid;
+  uint16_t rw_ptr; // <-- This could be stored in a per-process file descriptor table
+  uint16_t sfid;
   inode_t inode;
 } of_t;
 
-int read_file(int sfid, void *x, size_t n);
-int write_file(int sfid, void *x, size_t n);
-int open_file(int sfid);
+int read_file(int fd, void *x, size_t n);
+int write_file(int fd, void *x, size_t n);
+int open_file(int fd);
 int lseek_file(int fd, int offset, int whence);
 
 int allocate(extent_t *e, int n);
