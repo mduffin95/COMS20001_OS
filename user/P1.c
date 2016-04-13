@@ -1,5 +1,6 @@
 #include "P1.h"
 #include "disk.h"
+#include "storage.h"
 
 void P1() {
   // char* x = "hello world, I'm P1\n";
@@ -9,10 +10,20 @@ void P1() {
   //   write( 0, &c, 1 ); //yield();
   // }
 
-  uint8_t x[64];
+  format();
+
+  int fd = open( "test.txt");
+
+  uint8_t x[32];
+  uint8_t y[32] =  "hello world";
+  int z;
   while( 1 ) {
-    disk_rd( 258*32+1, x, 63 );
-    write( -1, x, 64 );
+    if( z = write(fd, y, 12) ) {
+      lseek( fd, -z, 0 );
+    }
+    if( z = read(fd, x, 12) ) {
+      lseek( fd, -z, 0 );
+    }
   }
 
 }

@@ -6,13 +6,13 @@
 #include "constants.h"
 
 typedef struct extent {
-  uint16_t index;
-  uint16_t len;
+  uint16_t index; //blocks
+  uint16_t len; //blocks
 } extent_t;
 
 typedef struct inode {
   uint16_t type; // 0 = normal, 1 = directory, 2 = special
-  uint16_t size;
+  uint16_t size; //bytes
   extent_t extents[ NUM_EXT ];
 } inode_t;
 
@@ -22,7 +22,7 @@ typedef struct inode {
 // } dir_entry_t;
 
 typedef struct open_file { //This needs to store the inode until the file is closed.
-  uint16_t rw_ptr; // <-- This could be stored in a per-process file descriptor table
+  uint16_t rw_ptr; // <-- (Bytes) This could be stored in a per-process file descriptor table
   uint16_t sfid;
   inode_t inode;
 } of_t;

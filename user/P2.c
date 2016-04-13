@@ -12,11 +12,11 @@ void P2() {
   int fd = open( "test.txt");
 
   while( 1 ) {
-    if( write(fd, y, 1) ) {
-      lseek( fd, -1, 0 );
+    if( write(fd, y, 12) ) {
+      lseek( fd, -12, 0 );
     }
-    if( read(fd, x, 1) ) {
-      lseek( fd, -1, 0 );
+    if( read(fd, x, 12) ) {
+      lseek( fd, -12, 0 );
     }
     if( !strcmp(x, y) ) {
       write(-1, "Test 1\n", 8 );

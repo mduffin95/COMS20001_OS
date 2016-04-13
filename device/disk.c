@@ -71,11 +71,11 @@ uint32_t disk_get_block_len() {
   return -1;
 }
 
-void disk_wr( uint32_t a, const uint8_t* x, int n ) {
+void wr_help( uint32_t block, const uint8_t *x, int n ) {
   for( int i = 0; i < RETRY; i++ ) {
       PL011_puth( UART1, 0x01 );        // write command
       PL011_putc( UART1, ' '  );        // write separator
-       addr_puth( UART1, a    );        // write address
+       addr_puth( UART1, block);        // write address
       PL011_putc( UART1, ' '  );        // write separator
        data_puth( UART1, x, n );        // write data
       PL011_putc( UART1, '\n' );        // write EOL
@@ -89,16 +89,39 @@ void disk_wr( uint32_t a, const uint8_t* x, int n ) {
       PL011_getc( UART1       );        // read  EOL
     }
   }
-
   return;
 }
 
-//Modify so this is byte-addressable.
+/*
+ * Write from x starting at byte a. Write a total of n bytes.
+ */
+void disk_wr( uint32_t a, const uint8_t* x, int n ) {
+  uint32_t block = a >> 5; //Division by 32
+  uint32_t offset = a & 0x1F;
+  if( offset ) {
+    uint8_t buffer[ BLOCK_SZ ];
+    disk_rd( block*BLOCK_SZ, buffer, offset );
+    int y = BLOCK_SZ - offset;
+    memcpy( buffer + offset, x, y );
+    n -= y;
+    x += y;
+    wr_help( block, buffer, BLOCK_SZ );
+    block++;
+  }
+  if( n > 0 ) {
+    wr_help( block, x, n );
+  }
+  return;
+}
+
+/*
+ * Read from byte a into x. Read a total of n bytes.
+ */
 void disk_rd( uint32_t a,       uint8_t* x, int n ) {
   uint32_t block = a >> 5; //Division by 32
   uint32_t offset = a & 0x1F;
-  uint8_t buffer[ 32 ];
-  int to_write;
+  uint8_t buffer[ BLOCK_SZ ];
+  int y;
   while( n > 0 ) {
     for( int i = 0; i < RETRY; i++ ) {
         PL011_puth( UART1, 0x02 );        // write command
@@ -108,7 +131,7 @@ void disk_rd( uint32_t a,       uint8_t* x, int n ) {
 
       if( PL011_geth( UART1 ) == 0x00 ) { // read  command
         PL011_getc( UART1       );        // read  separator
-         data_geth( UART1, buffer, 32);        // read  data
+         data_geth( UART1, buffer, BLOCK_SZ);        // read  data
         PL011_getc( UART1       );        // read  EOL
 
         break;
@@ -117,15 +140,15 @@ void disk_rd( uint32_t a,       uint8_t* x, int n ) {
         PL011_getc( UART1       );        // read  EOL
       }
     }
-    if( 32 - offset < n ) {
-      to_write = 32 - offset;
+    if( BLOCK_SZ - offset < n ) {
+      y = BLOCK_SZ - offset;
     }
     else {
-      to_write = n;
+      y = n;
     }
-    memcpy( x, buffer + offset, to_write );
-    n -= to_write;
-    x += to_write;
+    memcpy( x, buffer + offset, y );
+    n -= y;
+    x += y;
     block++;
     offset = 0;
   }
