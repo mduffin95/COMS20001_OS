@@ -16,6 +16,7 @@ int write( int fd, void* x, size_t n );
 int read( int fd, void *x, size_t n );
 int open( const char *pathname );
 int lseek( int fd, int offset, int whence );
+int creat( const char *pathname );
 
 extern uint32_t ipc;
 

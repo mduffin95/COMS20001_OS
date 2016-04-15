@@ -3,16 +3,9 @@
 #include "storage.h"
 
 void P1() {
-  // char* x = "hello world, I'm P1\n";
-
-  // while( 1 ) {
-  //   uint8_t c = chan_receive(0);
-  //   write( 0, &c, 1 ); //yield();
-  // }
-
   format();
-
-  int fd = open( "test.txt");
+  creat( "test" );
+  int fd = open( "test" );
 
   uint8_t x[32];
   uint8_t y[32] =  "hello world";

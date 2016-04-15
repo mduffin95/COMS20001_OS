@@ -47,6 +47,19 @@ int open( const char *pathname ) {
   return r;
 }
 
+int creat( const char *pathname ) {
+  int r;
+
+  asm volatile( "mov r0, %1 \n"
+                "svc #8     \n"
+                "mov %0, r0 \n"
+              : "=r" (r)
+              : "r" (pathname)
+              : "r0" );
+
+  return r;
+}
+
 int lseek( int fd, int offset, int whence ) {
   int r;
 

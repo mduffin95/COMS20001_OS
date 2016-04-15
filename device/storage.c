@@ -1,16 +1,18 @@
 #include "storage.h"
 #include "disk.h"
+#include <string.h>
 
 of_t of_table[10];
 
 /*
  * Read n bytes of the file given by fd into x.
+ * Returns -1 if the file hasn't been initialised yet.
  */
 int read_file( int fd, void *x, size_t n ) {
   inode_t *inode = &(of_table[fd].inode);
   int offset = of_table[fd].rw_ptr;
   int total_read = 0;
-  if( inode->extents[0].index < DATA_START ) return -1;
+  if( inode->extents[0].index < DATA_START || offset >= inode->size ) return -1;
   int i = 0;
   int len_bytes, index_bytes;
   while( inode->extents[i].index >= DATA_START && i < NUM_EXT ) {
@@ -21,14 +23,14 @@ int read_file( int fd, void *x, size_t n ) {
     }
     else if( offset + n > len_bytes ) {
       int diff = len_bytes - offset;
-      disk_rd( index_bytes + offset, (uint8_t *) x, diff * BLOCK_SZ );
+      disk_rd( index_bytes + offset, (uint8_t *) x, diff );
       x += diff;
       n -= diff;
       total_read += diff;
       of_table[fd].rw_ptr += diff;
     }
     else {
-      disk_rd( index_bytes + offset, (uint8_t *) x, n * BLOCK_SZ );
+      disk_rd( index_bytes + offset, (uint8_t *) x, n );
       total_read += n;
       of_table[fd].rw_ptr += n;
       break;
@@ -94,11 +96,48 @@ int write_file( int fd, void *x, size_t n ) {
 }
 
 /*
- * Navigate the directory structure to find the file provided.
+ * Navigate the directory structure to find the file provided. Returns the sfid.
  */
-// int find_file( const char *pathname ) {
-//
-// }
+int find_file( const char *pathname ) {
+  int root = open_file( 2 );
+  dir_entry_t x;
+  int bytes_read;
+  do {
+    bytes_read = read_file( root, &x, sizeof(dir_entry_t) );
+  } while( strcmp( x.name, pathname ) && bytes_read > 0 );
+  close_file( root );
+  if( bytes_read > 0 ) {
+    return x.sfid;
+  }
+  return 0;
+}
+
+/*
+ * Returns the sfid of the newly created file.
+ */
+int creat_file( const char *pathname ) {
+  int ff = find_file( pathname );
+  if( !ff ) {
+    uint8_t bitmap[ BLOCK_SZ ] = {0};
+    disk_rd( 0, bitmap, BLOCK_SZ ); //Read inode bitmap into memory
+    int i = 0;
+    for(; i<BLOCK_SZ && bitmap[ i ] == 0xFF; i++);
+    int j = 0;
+    for(; j<8 && CHECK_BIT( bitmap[ i ], j ); j++);
+    bitmap[ i ] = SET_BIT(bitmap[ i ], j);
+    int sfid = i*8 + j + INODE_START;
+
+    int root = open_file( 2 ); //Open directory file
+    lseek_file( root, 0, SEEK_END ); //Put pointer at end of file.
+    dir_entry_t x;
+    x.sfid = sfid; //Copy across sfid
+    strcpy( x.name, pathname ); //Copy across name
+    write_file( root, &x, sizeof(dir_entry_t) ); //Write entry to directory file
+    //No need to write inode to disk because it has all zero values.
+    return sfid;
+  }
+  return 0;
+}
 
 /*
  * Open the file given by the system file identifier. Return a file descriptor.
@@ -122,8 +161,18 @@ void close_file(int fd) {
 /*
  * Returns the current offset in number of blocks from the beginning of the file.
  */
-int lseek_file(int fd, int offset, int whence) {
-  of_table[fd].rw_ptr += offset;
+int lseek_file(int fd, int offset, seek_t whence) {
+  switch( whence ) {
+    case SEEK_SET:
+    of_table[ fd ].rw_ptr = offset;
+    break;
+    case SEEK_CUR:
+    of_table[fd].rw_ptr += offset;
+    break;
+    case SEEK_END:
+    of_table[ fd ].rw_ptr = of_table[ fd ].inode.size + offset;
+    break;
+  }
   return of_table[fd].rw_ptr;
 }
 
@@ -182,10 +231,10 @@ void format(void) {
   disk_wr( 1*BLOCK_SZ, bitmap, BLOCK_SZ ); //8 data blocks allocated
   bitmap[0] = 1;
   disk_wr( 0, bitmap, BLOCK_SZ ); //One inode
-  bitmap[0] = 0;
-  bitmap[2] = 0x08;
-  bitmap[4] = 0x02;
-  bitmap[5] = 0x01;
-  bitmap[6] = 0x08;
-  disk_wr( 2*BLOCK_SZ, bitmap, BLOCK_SZ );
+  inode_t i;
+  i.type = 1;
+  i.size = 0;
+  i.extents[ 0 ].index = 258;
+  i.extents[ 0 ].len = 8;
+  disk_wr( 2*BLOCK_SZ, (uint8_t *) &i, BLOCK_SZ );
 }

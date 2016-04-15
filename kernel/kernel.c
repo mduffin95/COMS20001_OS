@@ -136,7 +136,8 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
     }
     case 0x06 : { // open
       char *path = ( char* )( ctx->gpr[ 0 ] );
-      int res = open_file( 2 );
+      int sfid = find_file( path );
+      int res = open_file( sfid );
       ctx->gpr[ 0 ] = res;
       break;
     }
@@ -147,6 +148,12 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
 
       int res = lseek_file( fd, offset, whence );
       ctx->gpr[ 0 ] = res;
+    }
+    case 0x08 : { // creat
+      char *path = ( char* )( ctx->gpr[ 0 ] );
+      int res = creat_file( path );
+      ctx->gpr[ 0 ] = res;
+      break;
     }
     default   : { // unknown
       break;
