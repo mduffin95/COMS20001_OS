@@ -9,6 +9,7 @@
 #define CHECK_BIT(var,pos) ((var) & (1<<(pos)))
 //I did the rest
 #define SET_BIT(var,pos) (var | (1<<pos))
+#define CLEAR_BIT(var,pos) (var & ~(1<<pos))
 
 typedef struct extent {
   uint16_t index; //blocks
@@ -35,8 +36,9 @@ typedef struct open_file { //This needs to store the inode until the file is clo
 int read_file(int fd, void *x, size_t n);
 int write_file(int fd, void *x, size_t n);
 int open_file(int fd);
-void close_file(int fd);
+int close_file(int fd);
 int lseek_file(int fd, int offset, seek_t whence);
+int unlink_file( int sfid );
 int find_file( const char *pathname );
 int creat_file( const char *pathname );
 

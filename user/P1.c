@@ -4,19 +4,26 @@
 
 void P1() {
   format();
-  creat( "test" );
-  int fd = open( "test" );
+  creat( "foo" );
+  creat( "bar" );
+  int fd1 = open( "foo" );
+  int fd2 = open( "bar" );
 
-  uint8_t x[32];
-  uint8_t y[32] =  "hello world";
+  uint8_t x[32] = "foo text";
+  uint8_t y[32] = "bar text";
   int z;
+  if( z = write(fd1, x, 9) ) {
+    lseek( fd1, -z, SEEK_CUR );
+  }
+  if( z = write(fd2, y, 9) ) {
+    lseek( fd2, -z, SEEK_CUR );
+  }
+  close( fd1 );
+  close( fd2 );
+  unlink( "foo" );
+  unlink( "bar" );
+
   while( 1 ) {
-    if( z = write(fd, y, 12) ) {
-      lseek( fd, -z, SEEK_CUR );
-    }
-    if( z = read(fd, x, 12) ) {
-      lseek( fd, -z, SEEK_CUR );
-    }
   }
 
 }

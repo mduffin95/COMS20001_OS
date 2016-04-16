@@ -121,7 +121,7 @@ int creat_file( const char *pathname ) {
     uint8_t bitmap[ BLOCK_SZ ] = {0};
     disk_rd( 0, bitmap, BLOCK_SZ ); //Read inode bitmap into memory
     int i = 0;
-    for(; i<BLOCK_SZ && bitmap[ i ] == 0xFF; i++);
+    for(; i<BLOCK_SZ && bitmap[ i ] == 0xFF; i++); //Find a byte which is clear
     int j = 0;
     for(; j<8 && CHECK_BIT( bitmap[ i ], j ); j++);
     bitmap[ i ] = SET_BIT(bitmap[ i ], j);
@@ -154,10 +154,11 @@ int open_file( int sfid ) {
   return fd;
 }
 
-void close_file(int fd) {
+int close_file( int fd ) {
   disk_wr( of_table[fd].sfid*BLOCK_SZ, (uint8_t *) &(of_table[fd].inode), BLOCK_SZ ); //Write out inode
   of_table[fd].sfid = 0;
   of_table[fd].rw_ptr = 0;
+  return 0;
 }
 
 /*
@@ -176,6 +177,32 @@ int lseek_file(int fd, int offset, seek_t whence) {
     break;
   }
   return of_table[fd].rw_ptr;
+}
+
+int unlink_file( int sfid ) {
+  //Delete bit in inode bitmap
+  uint8_t bitmap[ BLOCK_SZ ];
+  disk_rd( 0, bitmap, BLOCK_SZ ); //Read inode bitmap into memory
+  int i = sfid - INODE_START;
+  int j = i >> 3; //Divide by 8 to get byte number.
+  int k = i & 0x7; //Bit number
+  bitmap[ j ] = CLEAR_BIT( bitmap[ j ], k );
+  disk_wr( 0, bitmap, BLOCK_SZ );
+  //Clear bits in disk bitmap
+  inode_t inode;
+  disk_rd( sfid*BLOCK_SZ, (uint8_t *) &inode, BLOCK_SZ ); //Read in inode.
+  disk_rd( 1*BLOCK_SZ, bitmap, BLOCK_SZ ); //Read in data bitmap
+  i = 0;
+  while( inode.extents[i].index >= DATA_START && i < NUM_EXT ) {
+    j = (inode.extents[i].index - DATA_START) >> 3;
+    k = inode.extents[i].len >> 3;
+    for( int x = j; x < j + k; x++ ) {
+      bitmap[ x ] = 0;
+    }
+    i++;
+  }
+  disk_wr( 1*BLOCK_SZ, bitmap, BLOCK_SZ );
+  return 0;
 }
 
 /*
@@ -201,31 +228,45 @@ int extend(extent_t *e, int n) {
 }
 
 /*
+ * k is the number of contiguous elements required. Returns the index of the start
+ * of the contiguous block. Returns -1 if there is no block.
+ * Precondition: len > k
+ */
+int contiguous( uint8_t *bitmap, int len, int k ) {
+  int i = 0, j = 0;
+  while( i < len ) {
+    if( bitmap[ i+j ] ) {
+      i += j + 1;
+      j = 0;
+    }
+    else {
+      j++;
+    }
+    if( j == k ) return i;
+  }
+  return -1;
+}
+
+/*
  * Create a new extent that is n bytes large, rounded up to the nearest multiple
  * of 8 blocks.
  */
 int allocate(extent_t *e, int n) {
   uint8_t bitmap[ BLOCK_SZ ] = {0};
   disk_rd( 1*BLOCK_SZ, bitmap, BLOCK_SZ );
-  int i = 0, j = 0, k;
-  k = (n + 31) >> 5;
+  int k = (n + 31) >> 5;
   k = (k + 7) >> 3; // <-- number of sets of 8 blocks.
-  while( i<BLOCK_SZ ) {
-    for(j=i; j<i+k; j++) {
-      if( bitmap[j] ){
-        i = j + 1;
-        break;
-      }
-    }
-    for(j=i; j<i+k; j++) {
-      bitmap[j] = 0xFF;
-    }
-    e->index = i * 8 + DATA_START;
-    e->len = k * 8;
-    disk_wr( 1*BLOCK_SZ, bitmap, BLOCK_SZ );
-    return k << 8; //Convert to number of bytes
+
+  int i = contiguous( bitmap, BLOCK_SZ, k );
+  if( i == -1 ) return 0;
+
+  for(int j=i; j<i+k; j++) {
+    bitmap[j] = 0xFF;
   }
-  return 0;
+  e->index = i * 8 + DATA_START;
+  e->len = k * 8;
+  disk_wr( 1*BLOCK_SZ, bitmap, BLOCK_SZ );
+  return k << 8; //Convert to number of bytes
 }
 
 void format(void) {

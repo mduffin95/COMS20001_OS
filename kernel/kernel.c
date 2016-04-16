@@ -156,6 +156,19 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       ctx->gpr[ 0 ] = res;
       break;
     }
+    case 0x09 : { // unlink
+      char *path = ( char* )( ctx->gpr[ 0 ] );
+      int sfid = find_file( path );
+      int res = unlink_file( sfid );
+      ctx->gpr[ 0 ] = res;
+      break;
+    }
+    case 0x0a : { // unlink
+      int fd = ( int )( ctx->gpr[ 0 ] );
+      int res = close_file( fd );
+      ctx->gpr[ 0 ] = res;
+      break;
+    }
     default   : { // unknown
       break;
     }

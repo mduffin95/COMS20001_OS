@@ -47,11 +47,37 @@ int open( const char *pathname ) {
   return r;
 }
 
+int close( int fd ) {
+  int r;
+
+  asm volatile( "mov r0, %1 \n"
+                "svc #10     \n"
+                "mov %0, r0 \n"
+              : "=r" (r)
+              : "r" (fd)
+              : "r0" );
+
+  return r;
+}
+
 int creat( const char *pathname ) {
   int r;
 
   asm volatile( "mov r0, %1 \n"
                 "svc #8     \n"
+                "mov %0, r0 \n"
+              : "=r" (r)
+              : "r" (pathname)
+              : "r0" );
+
+  return r;
+}
+
+int unlink( const char *pathname ) {
+  int r;
+
+  asm volatile( "mov r0, %1 \n"
+                "svc #9     \n"
                 "mov %0, r0 \n"
               : "=r" (r)
               : "r" (pathname)
