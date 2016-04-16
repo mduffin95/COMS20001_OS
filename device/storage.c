@@ -126,6 +126,7 @@ int creat_file( const char *pathname ) {
     for(; j<8 && CHECK_BIT( bitmap[ i ], j ); j++);
     bitmap[ i ] = SET_BIT(bitmap[ i ], j);
     int sfid = i*8 + j + INODE_START;
+    disk_wr( 0, bitmap, BLOCK_SZ );
 
     int root = open_file( 2 ); //Open directory file
     lseek_file( root, 0, SEEK_END ); //Put pointer at end of file.
@@ -133,6 +134,7 @@ int creat_file( const char *pathname ) {
     x.sfid = sfid; //Copy across sfid
     strcpy( x.name, pathname ); //Copy across name
     write_file( root, &x, sizeof(dir_entry_t) ); //Write entry to directory file
+    close_file( root );
     //No need to write inode to disk because it has all zero values.
     return sfid;
   }
@@ -218,7 +220,7 @@ int allocate(extent_t *e, int n) {
     for(j=i; j<i+k; j++) {
       bitmap[j] = 0xFF;
     }
-    e->index = i * 8;
+    e->index = i * 8 + DATA_START;
     e->len = k * 8;
     disk_wr( 1*BLOCK_SZ, bitmap, BLOCK_SZ );
     return k << 8; //Convert to number of bytes

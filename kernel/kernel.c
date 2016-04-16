@@ -79,7 +79,7 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
         res = read_file( fd, x, n );
       }
       else {
-        res = extract_buf( x, n );
+        res = extract_buf( x, n ); //For reading from keyboard
       }
 
       ctx->gpr[ 0 ] = res;
@@ -148,6 +148,7 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
 
       int res = lseek_file( fd, offset, whence );
       ctx->gpr[ 0 ] = res;
+      break;
     }
     case 0x08 : { // creat
       char *path = ( char* )( ctx->gpr[ 0 ] );

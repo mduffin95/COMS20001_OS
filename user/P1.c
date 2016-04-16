@@ -12,10 +12,10 @@ void P1() {
   int z;
   while( 1 ) {
     if( z = write(fd, y, 12) ) {
-      lseek( fd, -z, 0 );
+      lseek( fd, -z, SEEK_CUR );
     }
     if( z = read(fd, x, 12) ) {
-      lseek( fd, -z, 0 );
+      lseek( fd, -z, SEEK_CUR );
     }
   }
 
