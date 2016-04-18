@@ -1,35 +1,30 @@
 #include "P0.h"
-#include "types.h"
-// #include <stdlib.h>
+#include "utils.h"
 
-void P0() {
-  // char type;
-  char x = 0x30;
-  // char newline = '\n';
-  // pid_t pid = fork();
-  // if (pid) {
-  //   type = 'P';
-  // }
-  // else {
-  //   type = 'C';
-  // }
+int is_prime( uint32_t x ) {
+  if ( !( x & 1 ) || ( x < 2 ) ) {
+    return ( x == 2 );
+  }
 
-
-  //Write an int to string function and test.
-
-  while( 1 ) {
-    // write( 0, &type, 1 );
-    // write( 0, &x, 1 ); //yield();
-    // write( 0, &newline, 1);
-    x++;
-    // if( type == 'P' && count-- == 0 ) {
-    //   exit();
-    // }
-    chan_send(0, x);
-    if(x > 0x39) {
-      x = 0x30;
+  for( uint32_t d = 3; ( d * d ) <= x ; d += 2 ) {
+    if( !( x % d ) ) {
+      return 0;
     }
   }
+
+  return 1;
 }
 
-void (*entry_P0)() = &P0;
+void P0() {
+  int x = 0;
+  while( 1 ) {
+    // test whether each x for 2^8 < x < 2^24 is prime or not
+
+    for( uint32_t x = ( 1 << 8 ); x < ( 1 << 24 ); x++ ) {
+      int r = is_prime( x );
+      prime_print(x, r);
+    }
+  }
+
+  return;
+}

@@ -1,9 +1,11 @@
-#ifndef __P3_H
-#define __P3_H
+#ifndef __RWDEMO2_H
+#define __RWDEMO2_H
 
 #include <stddef.h>
 #include <stdint.h>
 
 #include "libc.h"
+
+void rw_demo2();
 
 #endif

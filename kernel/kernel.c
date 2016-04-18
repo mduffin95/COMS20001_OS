@@ -18,6 +18,7 @@
 #include "P0.h"
 #include "P1.h"
 #include "P2.h"
+#include "philosophers.h"
 #include "shell.h"
 
 void kernel_handler_rst( ctx_t* ctx ) {
@@ -118,10 +119,19 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       current->pid      = pid;
       current->ctx.cpsr = 0x50;
       if( !strcmp( path, "P0" ) ) {
-        current->ctx.pc   = ( uint32_t ) entry_P0;
+        current->ctx.pc   = ( uint32_t ) &P0;
       }
       else if( !strcmp( path, "P1" ) ) {
-        current->ctx.pc   = ( uint32_t ) entry_P1;
+        current->ctx.pc   = ( uint32_t ) &P1;
+      }
+      else if( !strcmp( path, "din_phil" ) ) {
+        current->ctx.pc   = ( uint32_t ) din_phil;
+      }
+      else if( !strcmp( path, "ipc_send" ) ) {
+        current->ctx.pc   = ( uint32_t ) ipc_send;
+      }
+      else if( !strcmp( path, "ipc_rcv" ) ) {
+        current->ctx.pc   = ( uint32_t ) ipc_rcv;
       }
       else {
         current->ctx.pc   = ( uint32_t ) &P2;

@@ -1,0 +1,4 @@
+- RR and fixed priority schedulers
+- Shell commands with arguments
+- Can kill processes from shell
+- Can input into shell during process execution

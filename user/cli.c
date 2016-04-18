@@ -37,7 +37,7 @@ void process_command( char *buffer ) {
 }
 
 void test_func(uint8_t argc, char **argv) {
-  write( 0, argv[0], strlen( argv[ 0 ] ) );
+  write( -1, argv[0], strlen( argv[ 0 ] ) );
 }
 
 void run( uint8_t argc, char **argv ) {

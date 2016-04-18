@@ -1,31 +1,33 @@
 #include "P1.h"
-#include "disk.h"
-#include "storage.h"
+#include "utils.h"
 
-void P1() {
-  format();
-  creat( "foo" );
-  creat( "bar" );
-  int fd1 = open( "foo" );
-  int fd2 = open( "bar" );
-
-  uint8_t x[32] = "foo text";
-  uint8_t y[32] = "bar text";
-  int z;
-  if( z = write(fd1, x, 9) ) {
-    lseek( fd1, -z, SEEK_CUR );
+uint32_t gcd( uint32_t x, uint32_t y ) {
+  if     ( x == y ) {
+    return x;
   }
-  if( z = write(fd2, y, 9) ) {
-    lseek( fd2, -z, SEEK_CUR );
+  else if( x >  y ) {
+    return gcd( x - y, y );
   }
-  close( fd1 );
-  close( fd2 );
-  unlink( "foo" );
-  unlink( "bar" );
-
-  while( 1 ) {
+  else if( x <  y ) {
+    return gcd( x, y - x );
   }
-
 }
 
-void (*entry_P1)() = &P1;
+
+
+
+void P1() {
+
+  while( 1 ) {
+    // compute the gcd between pairs of x and y for 2^4 < x, y < 2^8
+
+    for( uint32_t x = ( 1 << 4 ); x < ( 1 << 8 ); x++ ) {
+      for( uint32_t y = ( 1 << 4 ); y < ( 1 << 8 ); y++ ) {
+        uint32_t r = gcd( x, y ); 
+        gcd_print(x, y, r);
+      }
+    }
+  }
+
+  return;
+}

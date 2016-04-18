@@ -25,5 +25,7 @@ extern uint32_t ipc;
 uint8_t *chan(uint8_t key);
 uint8_t chan_receive(uint8_t key);
 void chan_send(uint8_t key, uint8_t val);
+void chan_set_ready(uint8_t key);
+int itoa( int x, char *buf );
 
 #endif

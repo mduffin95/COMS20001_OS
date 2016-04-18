@@ -127,7 +127,7 @@ void exec(int prty, char *path, char **argv) {
 }
 
 uint8_t *chan(uint8_t key) {
-  return  (uint8_t *) (&ipc + (key << 1));
+  return (uint8_t *) &ipc + (key << 1);
 }
 
 uint8_t chan_receive(uint8_t key) {
@@ -140,7 +140,32 @@ uint8_t chan_receive(uint8_t key) {
 
 void chan_send(uint8_t key, uint8_t val) {
   volatile uint8_t *c = chan(key);
-  while( *c );
+  while( *c ); //If channel is already ready (so hasn't been read since last time) then wait
   *(c+1) = val;
   *c = 1;
+}
+
+void chan_set_ready(uint8_t key) {
+  volatile uint8_t *c = chan(key);
+  *c = 1;
+}
+
+int itoa( int x, char *buf ) {
+  int i = 0;
+  int r;
+  do {
+    buf[i] = x % 10 + '0';
+    x /= 10;
+    i++;
+  } while( x > 0 );
+  r = i;
+  i--;
+  char tmp;
+  for( int j = 0; j < i; j++ ) {
+    tmp = buf[i];
+    buf[i] = buf[j];
+    buf[j] = tmp;
+    i--;
+  }
+  return r;
 }

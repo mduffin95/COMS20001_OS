@@ -1,25 +1,25 @@
 #include "P2.h"
-#include "libc.h"
-#include "storage.h"
-#include <string.h>
+#include "utils.h"
+
+uint32_t weight( uint32_t x ) {
+  x = ( x & 0x55555555 ) + ( ( x >>  1 ) & 0x55555555 );
+  x = ( x & 0x33333333 ) + ( ( x >>  2 ) & 0x33333333 );
+  x = ( x & 0x0F0F0F0F ) + ( ( x >>  4 ) & 0x0F0F0F0F );
+  x = ( x & 0x00FF00FF ) + ( ( x >>  8 ) & 0x00FF00FF );
+  x = ( x & 0x0000FFFF ) + ( ( x >> 16 ) & 0x0000FFFF );
+
+  return x;
+}
 
 void P2() {
-  format();
-
-  uint8_t x[32];
-  uint8_t y[32] = "hello world";
-
-  int fd = open( "test.txt");
-
   while( 1 ) {
-    if( write(fd, y, 12) ) {
-      lseek( fd, -12, 0 );
-    }
-    if( read(fd, x, 12) ) {
-      lseek( fd, -12, 0 );
-    }
-    if( !strcmp(x, y) ) {
-      write(-1, "Test 1\n", 8 );
+    // compute the Hamming weight of each x for 2^8 < x < 2^24
+
+    for( uint32_t x = ( 1 << 8 ); x < ( 1 << 24 ); x++ ) {
+      uint32_t r = weight( x ); 
+      weight_print( x, r );
     }
   }
+
+  return;
 }
