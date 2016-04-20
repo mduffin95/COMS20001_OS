@@ -5,8 +5,14 @@
 void phil( const char *eat, uint8_t left, uint8_t right ) {
   int eating = 0;
   while(1) {
-    chan_receive(left); //Pick up left fork
-    chan_receive(right); //Pick up right fork
+    if(left < right) {
+      chan_receive(left); //Pick up left fork
+      chan_receive(right); //Pick up right fork
+    }
+    else {
+      chan_receive(right); //Pick up right fork
+      chan_receive(left); //Pick up left fork
+    }
     for(int i = 0; i<EAT; i++) {
       write( -1, (void*) eat, 10 );
     }
@@ -35,7 +41,11 @@ void din_phil( void ) {
   if( !pid ) {
     phil( "Eating 3", 3, 2 );
   }
-  phil( "Eating 4", 4, 3 );
+  pid = fork();
+  if( !pid ) {
+    phil( "Eating 4", 4, 3 );
+  }
+  while(1);
 }
 
 void ipc_send( void ) {

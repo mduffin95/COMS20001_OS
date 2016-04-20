@@ -6,6 +6,6 @@
 
 #include "libc.h"
 
-void rw_demo1();
+void rw_demo();
 
 #endif

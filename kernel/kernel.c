@@ -14,12 +14,13 @@
 
 #include <string.h>
 
-// Include definitions relating to the 2 user programs.
+// User programs.
 #include "P0.h"
 #include "P1.h"
 #include "P2.h"
 #include "philosophers.h"
 #include "shell.h"
+#include "rwdemo.h"
 
 void kernel_handler_rst( ctx_t* ctx ) {
   TIMER0->Timer1Load     = 0x00100000; // select period = 2^20 ticks ~= 1 sec
@@ -119,10 +120,10 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       current->pid      = pid;
       current->ctx.cpsr = 0x50;
       if( !strcmp( path, "P0" ) ) {
-        current->ctx.pc   = ( uint32_t ) &P0;
+        current->ctx.pc   = ( uint32_t ) P0;
       }
       else if( !strcmp( path, "P1" ) ) {
-        current->ctx.pc   = ( uint32_t ) &P1;
+        current->ctx.pc   = ( uint32_t ) P1;
       }
       else if( !strcmp( path, "din_phil" ) ) {
         current->ctx.pc   = ( uint32_t ) din_phil;
@@ -133,8 +134,11 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       else if( !strcmp( path, "ipc_rcv" ) ) {
         current->ctx.pc   = ( uint32_t ) ipc_rcv;
       }
+      else if( !strcmp( path, "P2" ) ) {
+        current->ctx.pc   = ( uint32_t ) P2;
+      }
       else {
-        current->ctx.pc   = ( uint32_t ) &P2;
+        current->ctx.pc   = ( uint32_t ) rw_demo;
       }
       current->ctx.sp   = get_stack_addr( pid );
       memset( ( uint32_t* ) ( current->ctx.sp - CHUNK ), 0, CHUNK );
@@ -147,7 +151,13 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
     case 0x06 : { // open
       char *path = ( char* )( ctx->gpr[ 0 ] );
       int sfid = find_file( path );
-      int res = open_file( sfid );
+      int res;
+      if (sfid >= INODE_START) {
+        res = open_file( sfid );
+      }
+      else {
+        res = -1;
+      }
       ctx->gpr[ 0 ] = res;
       break;
     }
@@ -173,7 +183,7 @@ void kernel_handler_svc( ctx_t* ctx, uint32_t id ) {
       ctx->gpr[ 0 ] = res;
       break;
     }
-    case 0x0a : { // unlink
+    case 0x0a : { // close
       int fd = ( int )( ctx->gpr[ 0 ] );
       int res = close_file( fd );
       ctx->gpr[ 0 ] = res;

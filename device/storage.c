@@ -107,7 +107,7 @@ int find_file( const char *pathname ) {
   } while( strcmp( x.name, pathname ) && bytes_read > 0 );
   close_file( root );
   if( bytes_read > 0 ) {
-    return x.sfid;
+    return x.sfid; //This will be 0 if file has been deleted.
   }
   return 0;
 }
@@ -129,7 +129,7 @@ int creat_file( const char *pathname ) {
     disk_wr( 0, bitmap, BLOCK_SZ );
 
     int root = open_file( 2 ); //Open directory file
-    lseek_file( root, 0, SEEK_END ); //Put pointer at end of file.
+    lseek_file( root, 0, SEEK_END ); //Put pointer at end of file. Could be changed to find empty region.
     dir_entry_t x;
     x.sfid = sfid; //Copy across sfid
     strcpy( x.name, pathname ); //Copy across name
@@ -202,6 +202,19 @@ int unlink_file( int sfid ) {
     i++;
   }
   disk_wr( 1*BLOCK_SZ, bitmap, BLOCK_SZ );
+  int root = open_file( 2 );
+  dir_entry_t x;
+  int bytes_read;
+  do {
+    bytes_read = read_file( root, &x, sizeof(dir_entry_t) );
+  } while( x.sfid != sfid && bytes_read > 0 );
+
+  if( bytes_read > 0 ) {
+    lseek_file( root, -bytes_read, SEEK_CUR );
+    x.sfid = 0;
+    write_file( root, &x, sizeof(dir_entry_t) );
+  }
+  close_file(root);
   return 0;
 }
 
