@@ -31,7 +31,7 @@ uint8_t remove( buffer_t *buf ) {
 int extract_buf( uint8_t *x, size_t n ) {
   uint8_t y;
   int count = 0;
-  while ( ( y = remove( &in_buf ) ) && count < n ) {
+  while ( count < n && ( y = remove( &in_buf ) ) ) {
     *x = y;
     x++;
     count++;

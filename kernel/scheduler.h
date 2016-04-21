@@ -6,8 +6,8 @@
 
 #define CHUNK 0x1000
 #define PID_MAX 10
-#define ROUND_ROBIN
-// #define FIXED_PRIO
+// #define ROUND_ROBIN
+#define FIXED_PRIO
 
 typedef void (*entry_point)();
 
